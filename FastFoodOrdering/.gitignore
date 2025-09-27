@@ -41,8 +41,6 @@ Thumbs.db
 # =========================
 # React Native (mobile)
 # =========================
-android/
-ios/
 expo/
 .expo/
 .expo-shared/
