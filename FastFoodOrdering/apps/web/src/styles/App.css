@@ -1,0 +1,21 @@
+/* apps/web/src/styles/App.css */
+.app {
+  font-family: Arial, sans-serif;
+  max-width: 1200px;
+  margin: 0 auto;
+}
+
+.main-nav {
+  padding: 10px;
+  background-color: #f8f8f8;
+}
+
+.main-nav a {
+  margin: 0 10px;
+  text-decoration: none;
+  color: #000;
+}
+
+.main-nav a:hover {
+  color: #007bff;
+}
