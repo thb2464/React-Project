@@ -1,0 +1,160 @@
+/* apps/web/src/styles/AuthPage.css */
+.auth-page {
+    max-width: fit-content;
+    margin: 0 auto;
+    background: linear-gradient(135deg, #c8c6bf 0%, #535353 100%);
+    min-height: 90vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  
+  .auth-container {
+    background: rgba(255, 255, 255, 0.9);
+    border-radius: 16px;
+    padding: 30px;
+    margin: 10px;
+    box-shadow: 0 4px 20px rgba(0,0,0,0.15);
+    text-align: center;
+    animation: fadeIn 0.5s ease-out;
+  }
+  
+  @keyframes fadeIn {
+    from { opacity: 0; transform: translateY(20px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+  
+  h2 {
+    margin-bottom: 25px;
+    color: #333;
+    font-size: 1.5rem;
+  }
+  
+  .tabs {
+    display: flex;
+    margin-bottom: 25px;
+    border-radius: 8px;
+    overflow: hidden;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+  }
+  
+  .tabs button {
+    flex: 1;
+    padding: 12px;
+    border: none;
+    background: #f0f0f0;
+    cursor: pointer;
+    font-weight: 600;
+    transition: background 0.3s ease;
+  }
+
+  .tabs button:hover{
+    background-color: #bdbdbd;
+  }
+  
+  .tabs button.active {
+    background: #000;
+    color: #fff;
+  }
+  
+  form {
+    display: flex;
+    flex-direction: column;
+    gap: 15px;
+  }
+  
+  .name-fields {
+    display: flex;
+    gap: 15px;
+  }
+  
+  input {
+    padding: 12px;
+    border: 1px solid #ddd;
+    border-radius: 8px;
+    background: #fff;
+    transition: border-color 0.3s ease;
+  }
+  
+  input:focus {
+    border-color: #007bff;
+    outline: none;
+  }
+  
+  .auth-btn {
+    width: 90%;
+    background-color: #000;
+    color: #fff;
+    padding: 10px;
+    margin-left: 12px;
+    border: none;
+    border-radius: 8px;
+    cursor: pointer;
+    font-weight: 600;
+    transition: background 0.3s ease;
+  }
+  
+  .auth-btn:hover {
+    background-color: #333;
+  }
+  
+  .divider {
+    margin: 5px 0 5px;
+    color: #666;
+    font-size: 0.9rem;
+  }
+  
+  .social-btn {
+    background: #fff;
+    border: 1px solid #ddd;
+    color: #000;
+    width: 90%;
+    padding: 10px;
+    margin-left: 12px;
+    margin-bottom: 3px;
+    border-radius: 8px;
+    cursor: pointer;
+    font-weight: 600;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: box-shadow 0.3s ease;
+  }
+  
+  .social-btn:hover {
+    box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+    color: #fff;
+  }
+  
+  .guest-btn {
+    background: #fff;
+    border: 1px solid #ddd;
+    color: #000;
+    width: 90%;
+    padding: 10px;
+    margin-left: 12px;
+    margin-bottom: 3px;
+    border-radius: 8px;
+    cursor: pointer;
+    font-weight: 600;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: box-shadow 0.3s ease;
+  }
+  
+  .guest-btn:hover {
+    box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+    color: #fff;
+  }
+  
+  @media (max-width: 768px) {
+    .auth-page {
+      padding: 20px;
+    }
+  
+    .name-fields {
+      flex-direction: column;
+      gap: 15px;
+    }
+  }

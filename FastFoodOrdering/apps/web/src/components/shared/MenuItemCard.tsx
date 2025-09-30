@@ -29,7 +29,8 @@ function MenuItemCard({ item }: MenuItemCardProps) {
             </span>
           ))}
         </div>
-        <button className="customize">Customize & Add</button>
+        <button className="customize">Customize</button>
+        <button className="add">+</button>
       </div>
     </div>
   )

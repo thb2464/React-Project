@@ -15,8 +15,14 @@
     padding: 10px 20px;
     border: none;
     background: none;
+    color: #000;
     cursor: pointer;
     border-bottom: 2px solid transparent;
+  }
+
+  .tabs button:hover {
+  background-color: #000;
+  color: #f0f0f0;
   }
   
   .tabs button.active {
@@ -129,9 +135,14 @@
     padding: 5px 10px;
     border: 1px solid #ccc;
     background: #fff;
+    color: #000;
     border-radius: 4px;
     cursor: pointer;
     margin-right: 5px;
+  }
+
+  .map-btn:hover{
+    background: #ccc;
   }
   
   .distance {
@@ -208,12 +219,13 @@
     padding: 8px 12px;
     border: 1px solid #ccc;
     background: #fff;
+    color: #000;
     border-radius: 4px;
     cursor: pointer;
   }
   
   .action-btn:hover {
-    background: #f0f0f0;
+    background: #d7d6d6;
   }
   
   .order-history h2 {
