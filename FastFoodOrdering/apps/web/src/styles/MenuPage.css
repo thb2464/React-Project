@@ -8,6 +8,7 @@
 .sidebar {
   width: 200px;
   flex-shrink: 0;
+  padding-right: 2%;
 }
 
 .sidebar h3 {
@@ -111,6 +112,7 @@
 .page-btn {
   padding: 8px 12px;
   background-color: #f0f0f0;
+  color: #000;
   border: 1px solid #ccc;
   border-radius: 4px;
   cursor: pointer;
