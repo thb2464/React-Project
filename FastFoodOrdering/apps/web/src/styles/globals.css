@@ -13,3 +13,7 @@ body {
     font-family: source-code-pro, Menlo, Monaco, Consolas, 'Courier New',
       monospace;
   }
+
+  .leaflet-container img.leaflet-tile {
+    image-rendering: crisp;
+  }

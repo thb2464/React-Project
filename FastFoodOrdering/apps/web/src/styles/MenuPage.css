@@ -1,101 +1,151 @@
 /* apps/web/src/styles/MenuPage.css */
 .menu-page {
-    display: flex;
-    gap: 20px;
-    padding: 20px;
+  display: flex;
+  gap: 20px;
+  padding: 20px;
+}
+
+.sidebar {
+  width: 200px;
+  flex-shrink: 0;
+}
+
+.sidebar h3 {
+  font-size: 1.2rem;
+  margin-bottom: 10px;
+}
+
+.category-list {
+  list-style: none;
+  padding: 0;
+  margin: 0 0 20px 0;
+}
+
+.category-list li {
+  padding: 10px;
+  cursor: pointer;
+  border-radius: 4px;
+  margin-bottom: 5px;
+}
+
+.category-list li.active {
+  background-color: #000;
+  color: #fff;
+}
+
+.dietary-list {
+  list-style: none;
+  padding: 0;
+  margin: 0 0 20px 0;
+}
+
+.dietary-list li {
+  display: flex;
+  align-items: center;
+  margin-bottom: 10px;
+}
+
+.dietary-list input {
+  margin-right: 10px;
+}
+
+.price-range {
+  margin-top: 10px;
+}
+
+.price-range input {
+  width: 100%;
+}
+
+.price-labels {
+  display: flex;
+  justify-content: space-between;
+  font-size: 0.9rem;
+  color: #666;
+}
+
+.main-content {
+  flex: 1;
+}
+
+.header-sort {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 20px;
+}
+
+.header-sort h1 {
+  font-size: 1.8rem;
+}
+
+.sort-by {
+  display: flex;
+  align-items: center;
+  background-color: #fff;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+  padding: 5px;
+}
+
+.sort-by select {
+  border: none;
+  background: transparent;
+  cursor: pointer;
+}
+
+.menu-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+  gap: 20px;
+}
+
+.pagination {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  margin-top: 20px;
+  gap: 10px;
+}
+
+.page-btn {
+  padding: 8px 12px;
+  background-color: #f0f0f0;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+  cursor: pointer;
+}
+
+.page-btn:hover {
+  background-color: #e0e0e0;
+}
+
+.page-btn.active {
+  background-color: #000;
+  color: #fff;
+}
+
+.page-btn:disabled {
+  background-color: #f0f0f0;
+  color: #aaa;
+  cursor: not-allowed;
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+  .menu-page {
+    flex-direction: column;
   }
-  
+
   .sidebar {
-    width: 200px;
-    flex-shrink: 0;
-  }
-  
-  .sidebar h3 {
-    font-size: 1.2rem;
-    margin-bottom: 10px;
-  }
-  
-  .category-list {
-    list-style: none;
-    padding: 0;
-    margin: 0 0 20px 0;
-  }
-  
-  .category-list li {
-    padding: 10px;
-    cursor: pointer;
-    border-radius: 4px;
-    margin-bottom: 5px;
-  }
-  
-  .category-list li.active {
-    background-color: #000;
-    color: #fff;
-  }
-  
-  .dietary-list {
-    list-style: none;
-    padding: 0;
-    margin: 0 0 20px 0;
-  }
-  
-  .dietary-list li {
-    display: flex;
-    align-items: center;
-    margin-bottom: 10px;
-  }
-  
-  .dietary-list input {
-    margin-right: 10px;
-  }
-  
-  .price-range {
-    margin-top: 10px;
-  }
-  
-  .price-range input {
     width: 100%;
   }
-  
-  .price-labels {
-    display: flex;
-    justify-content: space-between;
-    font-size: 0.9rem;
-    color: #666;
-  }
-  
-  .main-content {
-    flex: 1;
-  }
-  
-  .header-sort {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    margin-bottom: 20px;
-  }
-  
-  .header-sort h1 {
-    font-size: 1.8rem;
-  }
-  
-  .sort-by {
-    display: flex;
-    align-items: center;
-    background-color: #fff;
-    border: 1px solid #ccc;
-    border-radius: 4px;
-    padding: 5px;
-  }
-  
-  .sort-by select {
-    border: none;
-    background: transparent;
-    cursor: pointer;
-  }
-  
+
   .menu-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
-    gap: 20px;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
   }
+
+  .pagination {
+    flex-wrap: wrap;
+  }
+}
