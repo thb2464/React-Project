@@ -1,10 +1,10 @@
 // apps/web/src/components/shared/MenuItemCard.tsx
 import React from 'react'
 import '../../styles/MenuItemCard.css'
-import { MenuItem } from '../../types'
+import { MenuItemType } from '../../types'
 
 interface MenuItemCardProps {
-  item: MenuItem
+  item: MenuItemType
 }
 
 function MenuItemCard({ item }: MenuItemCardProps) {
@@ -15,7 +15,7 @@ function MenuItemCard({ item }: MenuItemCardProps) {
       <span className="favorite">♡</span>
       <div className="item-details">
         <h3>{item.name}</h3>
-        <p className="price">${item.price.toFixed(2)}</p>
+        <p className="price">${item.discountedPrice.toFixed(2)}</p>
         <p className="description">{item.description}</p>
         <div className="item-info">
           <span>⭐ {item.rating}</span>
