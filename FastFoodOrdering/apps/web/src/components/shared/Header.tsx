@@ -12,19 +12,12 @@ const mockIsAdmin = false;
 function Header() {
   const [isAccountOpen, setIsAccountOpen] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
-  const [itemCount, setItemCount] = useState(0);
   const { cart } = useAppState();
 
+  // Calculate item count based on quantity
   useEffect(() => {
-    let count = 0;
-    if (cart.length) {
-      cart.forEach((item: any) => {
-        if (item.amount) {
-          count += item.amount;
-        }
-      });
-    }
-    setItemCount(count);
+    const itemCount = cart.reduce((sum, item) => sum + item.quantity, 0);
+    // No need to set state if using directly in render
   }, [cart]);
 
   const handleLogout = () => {
@@ -92,7 +85,7 @@ function Header() {
         {/* Cart */}
         <div className="cart-container" onClick={() => window.location.href = '/cart'}>
           <span className="cart">🛒</span>
-          <span>{itemCount > 0 ? `Cart (${itemCount})` : 'Cart'}</span>
+          <span>{cart.reduce((sum, item) => sum + item.quantity, 0) > 0 ? `Cart (${cart.reduce((sum, item) => sum + item.quantity, 0)})` : 'Cart'}</span>
         </div>
       </div>
       
@@ -112,8 +105,6 @@ function Header() {
           </ul>
         </div>
       )}
-      
-
     </header>
   )
 }
