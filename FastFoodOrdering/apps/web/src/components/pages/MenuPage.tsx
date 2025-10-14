@@ -1,51 +1,61 @@
 // apps/web/src/components/pages/MenuPage.tsx
-import React, { useState, useEffect } from 'react'
-import '../../styles/MenuPage.css'
-import { categories, dietaryPreferences, fetchMenuData } from '../../data/mockData'
-import { Category, MenuItemType, MenuCategoryType } from '../../types'
-import MenuItemCard from '../shared/MenuItemCard'
+import React, { useState, useEffect } from 'react';
+import '../../styles/MenuPage.css';
+import { fetchAllFoodItems } from '../../services/api';
+import { MenuItemType } from '../../types';
+import MenuItemCard from '../shared/MenuItemCard';
+
+// KHÔI PHỤC LẠI: Dữ liệu tĩnh cho bộ lọc, vì chúng không đến từ API
+const dietaryPreferences: string[] = ['Vegetarian', 'Vegan', 'Gluten-Free', 'Dairy-Free'];
 
 function MenuPage() {
-  const [menuData, setMenuData] = useState<Record<string, MenuCategoryType[]>>({});
-  const [selectedCategory, setSelectedCategory] = useState('All Items');
+  const [allItems, setAllItems] = useState<MenuItemType[]>([]);
   const [filteredItems, setFilteredItems] = useState<MenuItemType[]>([]);
+  const [categories, setCategories] = useState<string[]>([]);
+  const [selectedCategory, setSelectedCategory] = useState('All Items');
+  const [loading, setLoading] = useState(true);
   const [currentPage, setCurrentPage] = useState(1);
-  const itemsPerPage = 6; // Adjust as needed
+  const itemsPerPage = 6;
 
   useEffect(() => {
-    const loadMenu = async () => {
-      const data = await fetchMenuData();
-      setMenuData(data);
-      // Flatten all items for 'All Items'
-      const allItems = Object.values(data).flatMap((cat) => cat.flatMap((subCat) => subCat.items));
-      setFilteredItems(allItems);
+    const loadAllItems = async () => {
+      setLoading(true);
+      const data = await fetchAllFoodItems();
+      
+      setAllItems(data);
+      setFilteredItems(data);
+
+      const uniqueCategories = [...new Set(data.flatMap(item => item.tags))];
+      setCategories(uniqueCategories);
+
+      setLoading(false);
     };
-    loadMenu();
-  }, []);
 
-  useEffect(() => {
-    setCurrentPage(1); // Reset to page 1 when category changes
-  }, [selectedCategory]);
+    loadAllItems();
+  }, []);
 
   const handleCategoryChange = (catName: string) => {
     setSelectedCategory(catName);
+    setCurrentPage(1); 
+
     if (catName === 'All Items') {
-      const allItems = Object.values(menuData).flatMap((cat) => cat.flatMap((subCat) => subCat.items));
       setFilteredItems(allItems);
     } else {
-      const selected = menuData[catName] || [];
-      const items = selected.flatMap((subCat) => subCat.items);
-      setFilteredItems(items);
+      const itemsInCategory = allItems.filter(item => item.tags.includes(catName));
+      setFilteredItems(itemsInCategory);
     }
   };
 
-  // Pagination logic
   const indexOfLastItem = currentPage * itemsPerPage;
   const indexOfFirstItem = indexOfLastItem - itemsPerPage;
   const currentItems = filteredItems.slice(indexOfFirstItem, indexOfLastItem);
   const totalPages = Math.ceil(filteredItems.length / itemsPerPage);
 
-  const paginate = (pageNumber: number) => setCurrentPage(pageNumber);
+  const paginate = (pageNumber: number) => {
+    if (pageNumber > 0 && pageNumber <= totalPages) {
+        setCurrentPage(pageNumber);
+    }
+  };
 
   return (
     <div className="menu-page">
@@ -53,8 +63,8 @@ function MenuPage() {
         <h3>Categories</h3>
         <ul className="category-list">
           <li className={selectedCategory === 'All Items' ? 'active' : ''} onClick={() => handleCategoryChange('All Items')}>All Items</li>
-          {categories.map((cat: Category) => (
-            <li key={cat.name} className={selectedCategory === cat.name ? 'active' : ''} onClick={() => handleCategoryChange(cat.name)}>{cat.name}</li>
+          {categories.map((cat) => (
+            <li key={cat} className={selectedCategory === cat ? 'active' : ''} onClick={() => handleCategoryChange(cat)}>{cat}</li>
           ))}
         </ul>
 
@@ -79,52 +89,45 @@ function MenuPage() {
       </aside>
 
       <main className="main-content">
-        <div className="header-sort">
-          <h1>{selectedCategory}</h1>
-          <div className="sort-by">
-            <select>
-              <option>Popular</option>
-              {/* Add more options as needed */}
-            </select>
-            <span>▼</span>
-          </div>
-        </div>
+        {loading ? (
+          <h1>Loading menu...</h1>
+        ) : (
+          <>
+            <div className="header-sort">
+              <h1>{selectedCategory}</h1>
+              <div className="sort-by">
+                <select>
+                  <option>Popular</option>
+                </select>
+                <span>▼</span>
+              </div>
+            </div>
 
-        <div className="menu-grid">
-          {currentItems.map((item) => (
-            <MenuItemCard key={item.id} item={item} />
-          ))}
-        </div>
+            <div className="menu-grid">
+              {currentItems.length > 0 ? (
+                currentItems.map((item) => (
+                  <MenuItemCard key={item.id} item={item} />
+                ))
+              ) : (
+                <p>No items found for this category.</p>
+              )}
+            </div>
 
-        {/* Pagination Controls */}
-        <div className="pagination">
-          <button 
-            onClick={() => paginate(currentPage - 1)} 
-            disabled={currentPage === 1}
-            className="page-btn"
-          >
-            Previous
-          </button>
-          {Array.from({ length: totalPages }, (_, i) => i + 1).map((page) => (
-            <button 
-              key={page} 
-              onClick={() => paginate(page)} 
-              className={`page-btn ${currentPage === page ? 'active' : ''}`}
-            >
-              {page}
-            </button>
-          ))}
-          <button 
-            onClick={() => paginate(currentPage + 1)} 
-            disabled={currentPage === totalPages}
-            className="page-btn"
-          >
-            Next
-          </button>
-        </div>
+            <div className="pagination">
+              <button onClick={() => paginate(currentPage - 1)} disabled={currentPage === 1} className="page-btn">Previous</button>
+              {Array.from({ length: totalPages }, (_, i) => i + 1).map((page) => (
+                <button key={page} onClick={() => paginate(page)} className={`page-btn ${currentPage === page ? 'active' : ''}`}>
+                  {page}
+                </button>
+              ))}
+              <button onClick={() => paginate(currentPage + 1)} disabled={currentPage === totalPages} className="page-btn">Next</button>
+            </div>
+          </>
+        )}
       </main>
     </div>
-  )
+  );
 }
 
-export default MenuPage
+export default MenuPage;
+
