@@ -1,70 +1,30 @@
-// apps/web/src/types/index.ts
-export interface Category {
-  icon: string
-  name: string
+/**
+ * Interface này định nghĩa cấu trúc dữ liệu thô trả về từ API backend.
+ * Tên các thuộc tính khớp với tên các cột trong database.
+ */
+export interface ApiMenuItem {
+  item_id: number;
+  name: string;
+  price: string; // PostgreSQL trả về kiểu decimal dưới dạng string
+  img_url: string | null;
+  description: string | null;
+  category: string; // <-- SỬA LỖI: Thêm dòng này
 }
 
+/**
+ * Interface này định nghĩa cấu trúc dữ liệu đã được xử lý
+ * để sử dụng trong các component React ở frontend.
+ */
 export interface MenuItemType {
-  id: string
-  name: string
-  description: string
-  originalPrice: number
-  discountedPrice: number
-  image: string
-  veg: boolean
-  customizationConfig?: CustomizationGroup[]
-  tags: string[]
-  isPopular?: boolean
-  rating: number
-  time: string
-  calories: number
-}
-
-export interface MenuCategoryType {
-  id: string
-  name: string
-  description: string
-  items: MenuItemType[]
-}
-
-export interface CustomizationGroup {
-  id: string
-  title: string
-  required: boolean
-  type: 'radio' | 'checkbox'
-  defaultOptionId?: string
-  options: CustomizationOption[]
-}
-
-export interface CustomizationOption {
-  id: string
-  name: string
-  price: number
-  ingredients?: string
-  image?: string
-}
-
-export type OrderItem = {
+  id: number;
   name: string;
-  price: number;
-};
-
-export type Order = {
-  id: string;
-  date: string;
-  status: 'Confirmed' | 'Preparing' | 'Ready' | 'Out for Delivery' | 'Delivered';
-  droneName: string; // Added drone name
-  items: OrderItem[];
-  total: number;
-};
-
-export type Drone = {
-  id: string;
-  name: string;
-  model: string;
-  license: string;
-  status: 'Available' | 'Delivering' | 'Offline';
+  image: string;
+  discountedPrice: number;
+  description: string;
   rating: number;
-  earnings: number;
-  distance: number;
-};
+  time: string;
+  calories: number;
+  isPopular: boolean;
+  tags: string[]; // category sẽ được đưa vào mảng này
+}
+
