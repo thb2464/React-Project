@@ -58,13 +58,6 @@ Traditional food delivery often suffers from:
 3. After payment confirmation (via webhook), backend updates order status.  
 4. Frontend displays “Payment Successful” and continues the process.
 
----
-
-## 🧠 Future Enhancements
-- AI-based food recommendations  
-- AR (Augmented Reality) drone visualization  
-- Loyalty points and coupons system  
-- Voice-based ordering  
 
 ---
 
