@@ -1,9 +1,9 @@
 // apps/web/src/components/shared/Header.tsx
 import React, { useState, useEffect } from 'react'
 import '../../styles/Header.css'
-import { categories } from '../../data/mockData'
-import { Category } from '../../types'
-import { useAppState } from '../../hooks/useAppState'
+import { categories } from '@fastfoodordering/data'
+import { Category } from '@fastfoodordering/types'
+import { useAppState } from '@fastfoodordering/hooks'
 
 // Mock user state (replace with actual auth context if available)
 const mockCurrentUser = null; // Set to { role: 'user' } or { role: 'admin' } for testing

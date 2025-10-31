@@ -3,7 +3,7 @@ import { MapContainer, TileLayer, Polyline, Marker, Popup } from 'react-leaflet'
 import 'leaflet/dist/leaflet.css';
 import L, { LatLngTuple, Icon } from 'leaflet';
 import '../../styles/OrdersPage.css';
-import { mockOrders, mockDrones } from '../../data/mockData';
+import { mockOrders, mockDrones } from '@fastfoodordering/data';
 import { Order, Drone } from '../../types';
 
 // Fix for default markers in react-leaflet

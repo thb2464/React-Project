@@ -1,8 +1,8 @@
 // apps/web/src/components/pages/MenuPage.tsx
 import React, { useState, useEffect } from 'react'
 import '../../styles/MenuPage.css'
-import { categories, dietaryPreferences, fetchMenuData } from '../../data/mockData'
-import { Category, MenuItemType, MenuCategoryType } from '../../types'
+import { categories, dietaryPreferences, fetchMenuData } from '@fastfoodordering/data'
+import { Category, MenuItemType, MenuCategoryType } from '@fastfoodordering/types'
 import MenuItemCard from '../shared/MenuItemCard'
 
 function MenuPage() {

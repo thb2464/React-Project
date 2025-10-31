@@ -1,45 +1,48 @@
 // apps/web/src/components/pages/HomePage.tsx
-import React, { useState, useEffect } from 'react'
-import '../../styles/HomePage.css'
-import { categories, fetchMenuData, TOP_OFFERS } from '../../data/mockData'
-import { Category, MenuItemType } from '../../types'
-import MenuItemCard from '../shared/MenuItemCard'
+import React from 'react'; // Removed useState and useEffect
+import '../../styles/HomePage.css';
+
+// Correct: Imports from your new shared packages
+import { categories, TOP_OFFERS } from '@fastfoodordering/data';
+import { Category, MenuItemType } from '@fastfoodordering/types';
+import { usePopularItems } from '@fastfoodordering/hooks';
+
+import MenuItemCard from '../shared/MenuItemCard';
 
 function HomePage() {
-  const [popularItems, setPopularItems] = useState<MenuItemType[]>([]);
+  // Correct: All your data-fetching logic is now in this one line!
+  const popularItems = usePopularItems();
 
-  useEffect(() => {
-    const loadData = async () => {
-      const data = await fetchMenuData();
-      // Flatten and filter popular items (assuming isPopular: true)
-      const allItems = Object.values(data).flatMap((cat) => cat.flatMap((subCat) => subCat.items));
-      const popular = allItems.filter((item) => item.isPopular).slice(0, 3); // Limit to 3 as example
-      setPopularItems(popular);
-    };
-    loadData();
-  }, []);
-
+  // Removed: The old useState and useEffect are now gone.
+  
   return (
+    // This JSX (HTML part) stays exactly the same
     <>
       <section className="hero">
         <h1>Delicious Food, Delivered Fast</h1>
         <p>Order from your favorite restaurants and get it delivered in minutes</p>
-        <button className="order-now" onClick={() => window.location.href = '/menu'}>Order Now</button>
+        <button className="order-now" onClick={() => (window.location.href = '/menu')}>
+          Order Now
+        </button>
       </section>
 
       {/* Top Offers Section */}
       <section className="top-offers">
+        {/* ... (rest of your JSX is unchanged) ... */}
         <h2>Top Offers</h2>
         <div className="offers-grid">
           {TOP_OFFERS.map((offer) => (
             <div key={offer.id} className="offer-item">
               <img src={offer.image} alt={offer.title} />
-              <p>{offer.title} - {offer.price}</p>
+              <p>
+                {offer.title} - {offer.price}
+              </p>
             </div>
           ))}
         </div>
       </section>
 
+      {/* Categories Section */}
       <section className="categories">
         <h2>Popular Categories</h2>
         <div className="category-grid">
@@ -52,15 +55,18 @@ function HomePage() {
         </div>
       </section>
 
+      {/* Popular Items Section */}
       <section className="popular-items">
         <h2>Popular Items</h2>
         <div className="popular-items-grid">
+          {/* This will now be populated by your hook */}
           {popularItems.map((item) => (
             <MenuItemCard key={item.id} item={item} />
           ))}
         </div>
       </section>
 
+      {/* Why Choose Section */}
       <section className="why-choose">
         <h2>Why Choose FoodieExpress?</h2>
         <div className="why-choose-grid">
@@ -70,7 +76,7 @@ function HomePage() {
         </div>
       </section>
     </>
-  )
+  );
 }
 
-export default HomePage
+export default HomePage;
