@@ -4,3 +4,4 @@ export * from './useMenu';
 export * from './useCurrentOrder';
 export * from './useOrderHistory';
 export * from './useDrones';
+export * from './useAuth';
