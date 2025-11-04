@@ -1,5 +1,13 @@
-// apps/web/src/data/mockData.ts
-import { Category } from '../types'
+import { 
+  Category, 
+  CustomizationOption, 
+  MenuItemType, 
+  MenuCategoryType, 
+  CustomizationGroup,
+  Order,
+  OrderItem,
+  Drone 
+} from '@fastfoodordering/types';
 
 export const categories: Category[] = [
   { icon: '🍔', name: 'Burgers' },
@@ -23,45 +31,6 @@ export const dietaryPreferences: string[] = [
   'Healthy',
 ]
 
-export type CustomizationOption = {
-  id: string;
-  name: string;
-  price: number;
-  ingredients?: string;
-  image?: string; // Optional for icons
-};
-
-export type MenuItemType = {
-  id: string;
-  name: string;
-  description: string;
-  originalPrice: number;
-  discountedPrice: number;
-  image: string;
-  veg: boolean;
-  customizationConfig?: CustomizationGroup[];
-  tags: string[];
-  isPopular?: boolean;
-  rating: number;
-  time: string;
-  calories: number;
-};
-
-export type MenuCategoryType = {
-  id: string;
-  name: string;
-  description: string;
-  items: MenuItemType[];
-};
-
-export type CustomizationGroup = {
-  id: string;
-  title: string;
-  required: boolean;
-  type: 'radio' | 'checkbox';
-  defaultOptionId?: string; // Optional: Pre-select this option by default
-  options: CustomizationOption[];
-};
 
 const commonAddOns: CustomizationOption[] = [
   { id: 'mini_aloo_samosa', name: 'Mini Aloo Samosa [Pack of 3]', price: 39 },
@@ -670,21 +639,6 @@ export const mockRecommendations = [
   },
 ];
 
-// Add to apps/web/src/data/mockData.ts (at the end)
-export type OrderItem = {
-  name: string;
-  price: number;
-};
-
-export type Order = {
-  id: string;
-  date: string;
-  status: 'Confirmed' | 'Preparing' | 'Ready' | 'Out for Delivery' | 'Delivered';
-  droneName: string;
-  items: OrderItem[];
-  total: number;
-};
-
 export const mockOrders: Order[] = [
   {
     id: '12345',
@@ -730,16 +684,6 @@ export const mockOrders: Order[] = [
   },
 ];
 
-export type Drone = {
-  id: string;
-  name: string;
-  model: string;
-  license: string;
-  status: 'Available' | 'Delivering' | 'Offline';
-  rating: number;
-  earnings: number;
-  distance: number;
-};
 
 export const mockDrones: Drone[] = [
   {

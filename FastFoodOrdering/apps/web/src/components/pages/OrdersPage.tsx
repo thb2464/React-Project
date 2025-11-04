@@ -4,7 +4,7 @@ import 'leaflet/dist/leaflet.css';
 import L, { LatLngTuple, Icon } from 'leaflet';
 import '../../styles/OrdersPage.css';
 import { mockOrders, mockDrones } from '@fastfoodordering/data';
-import { Order, Drone } from '../../types';
+import { Order, Drone } from '@fastfoodordering/types';
 
 // Fix for default markers in react-leaflet
 delete (L.Icon.Default.prototype as any)._getIconUrl;
