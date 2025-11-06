@@ -1,47 +1,44 @@
 // apps/web/src/hooks/useAppState.ts
-import { useState } from 'react'
-import { MenuItemType } from '../types'
+import { useState, useEffect } from 'react';
+import { MenuItemType } from '../types';
+
+export type User = {
+  id: string;
+  email: string;
+  name: string;
+  role: 'customer' | 'admin' | 'operator';
+};
 
 type CartItem = MenuItemType & { quantity: number };
 
 export function useAppState() {
   const [cart, setCart] = useState<CartItem[]>([
-    {
-      id: '11',
-      name: 'Spicy Jalapeno Pizza [Regular 7"]',
-      description:
-        'Tangy, Spicy Jalapenos with Mozzarella & Molten Cheese. 100% Dairy Cheese | 0% Mayonnaise',
-      originalPrice: 195,
-      discountedPrice: 99,
-      image: 'https://assets.box8.co.in/rectangle-19x10/xhdpi/product/8074',
-      veg: true,
-      tags: ['Vegetarian', 'Gluten Free Option'],
-      isPopular: true,
-      rating: 4.5,
-      time: '15-20 min',
-      calories: 400,
-      quantity: 2,
-    },
-    {
-      id: '12',
-      name: 'Golden Corn Pizza [Regular 7"]',
-      description:
-        'Golden Corn with Mozzarella & Molten Cheese. 100% Dairy Cheese | 0% Mayonnaise',
-      originalPrice: 195,
-      discountedPrice: 99,
-      image: 'https://assets.box8.co.in/rectangle-19x10/xhdpi/product/7753',
-      veg: true,
-      tags: ['Vegetarian', 'Gluten Free Option'],
-      isPopular: true,
-      rating: 4.6,
-      time: '15-20 min',
-      calories: 380,
-      quantity: 1,
-    },
+    // ... your cart items ...
   ]);
 
-  const addToCart = (item: MenuItemType) => {
-    const existingItem = cart.find((cartItem) => cartItem.id === item.id);
+  const [user, setUser] = useState<User | null>(null);
+
+  // Load from localStorage
+  useEffect(() => {
+    const stored = localStorage.getItem('foodie_user');
+    if (stored) {
+      try {
+        setUser(JSON.parse(stored));
+      } catch {}
+    }
+  }, []);
+
+  // Save to localStorage
+  useEffect(() => {
+    if (user) {
+      localStorage.setItem('foodie_user', JSON.stringify(user));
+    } else {
+      localStorage.removeItem('foodie_user');
+    }
+  }, [user]);
+
+const addToCart = (item: MenuItemType) => {
+    const existingItem = cart.find((i) => i.id === item.id);
     if (existingItem) {
       updateQuantity(item.id, existingItem.quantity + 1);
     } else {
@@ -51,14 +48,19 @@ export function useAppState() {
 
   const updateQuantity = (id: string, newQuantity: number) => {
     if (newQuantity < 1) return removeFromCart(id);
-    setCart(cart.map((item) => 
-      item.id === id ? { ...item, quantity: newQuantity } : item
-    ));
+    setCart(cart.map((i) => (i.id === id ? { ...i, quantity: newQuantity } : i)));
   };
 
   const removeFromCart = (id: string) => {
-    setCart(cart.filter((item) => item.id !== id));
+    setCart(cart.filter((i) => i.id !== id));
   };
 
-  return { cart, addToCart, updateQuantity, removeFromCart };
+  return {
+    cart,
+    addToCart,
+    updateQuantity,
+    removeFromCart,
+    user,
+    setUser,
+  };
 }
