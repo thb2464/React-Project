@@ -59,9 +59,9 @@ function MenuPage() {
 
   return (
     <div className="menu-page">
-      <aside className="sidebar">
+      <aside className="menu-sidebar">
         <h3>Categories</h3>
-        <ul className="category-list">
+        <ul className="menu-category-list">
           <li className={selectedCategory === 'All Items' ? 'active' : ''} onClick={() => handleCategoryChange('All Items')}>All Items</li>
           {categories.map((cat) => (
             <li key={cat} className={selectedCategory === cat ? 'active' : ''} onClick={() => handleCategoryChange(cat)}>{cat}</li>
@@ -69,7 +69,7 @@ function MenuPage() {
         </ul>
 
         <h3>Dietary Preferences</h3>
-        <ul className="dietary-list">
+        <ul className="menu-dietary-list">
           {dietaryPreferences.map((pref: string) => (
             <li key={pref}>
               <input type="checkbox" id={pref} />
@@ -79,7 +79,7 @@ function MenuPage() {
         </ul>
 
         <h3>Price Range</h3>
-        <div className="price-range">
+        <div className="menu-price-range">
           <input type="range" min="0" max="50" step="1" defaultValue="50" />
           <div className="price-labels">
             <span>$0</span>
@@ -99,7 +99,6 @@ function MenuPage() {
                 <select>
                   <option>Popular</option>
                 </select>
-                <span>▼</span>
               </div>
             </div>
 

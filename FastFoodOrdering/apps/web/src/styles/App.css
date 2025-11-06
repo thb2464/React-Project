@@ -1,21 +1,29 @@
 /* apps/web/src/styles/App.css */
-.app {
-  font-family: Arial, sans-serif;
-  max-width: 1200px;
+
+/* Web UI: 80% max-width, centered */
+.web-centered {
+  max-width: 80%;
   margin: 0 auto;
+  min-height: 100vh;
 }
 
-.main-nav {
-  padding: 10px;
-  background-color: #f8f8f8;
+/* Admin UI: 100% full width */
+.admin-full {
+  max-width: 100%;
+  width: 100%;
+  min-height: 100vh;
+  margin: 0;
+  padding: 0;
 }
 
-.main-nav a {
-  margin: 0 10px;
-  text-decoration: none;
-  color: #000;
+/* Global reset */
+html, body, #root {
+  margin: 0;
+  padding: 0;
+  height: 100%;
 }
 
-.main-nav a:hover {
-  color: #007bff;
+.app {
+  height: 100vh;
+  
 }
