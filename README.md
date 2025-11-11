@@ -71,3 +71,109 @@ Traditional food delivery often suffers from:
 | Payment Integration | Stripe, Momo, Payoo |
 | Real-time Tracking | WebSocket / MQTT |
 | Deployment | AWS / Firebase Hosting |
+
+
+---
+
+## Project Strucure
+
+FASTFOODORDERING/
+├── .gitignore
+├── node_modules/
+├── package.json
+├── package-lock.json
+├── tsconfig.json
+├── apps/
+│   ├── mobile/
+│   └── web/
+│       ├── .gitignore
+│       ├── eslint.config.js
+│       ├── index.html
+│       ├── node_modules/
+│       ├── package.json
+│       ├── public/
+│       ├── README.md
+│       ├── src/
+│       │   ├── assets/
+│       │   ├── components/
+│       │   │   ├── pages/
+│       │   │   │   ├── AdminAnalyticsPage.tsx
+│       │   │   │   ├── AdminDashboard.tsx
+│       │   │   │   ├── AdminDronesPage.tsx
+│       │   │   │   ├── AdminMenuPage.tsx
+│       │   │   │   ├── AdminOrdersPage.tsx
+│       │   │   │   ├── AdminPaymentsPage.tsx
+│       │   │   │   ├── AdminRestaurants.tsx
+│       │   │   │   ├── AdminRolesPage.tsx
+│       │   │   │   ├── AdminUsersPage.tsx
+│       │   │   │   ├── AuthPage.tsx
+│       │   │   │   ├── CheckoutPage.tsx
+│       │   │   │   ├── HomePage.tsx
+│       │   │   │   ├── MenuPage.tsx
+│       │   │   │   ├── OrdersPage.tsx
+│       │   │   │   ├── ProfilePage.tsx
+│       │   │   │   └── SupportPage.tsx
+│       │   │   ├── shared/
+│       │   │   │   ├── AdminLayout.tsx
+│       │   │   │   ├── AdminSidebar.tsx
+│       │   │   │   ├── CartContent.tsx
+│       │   │   │   ├── CustomizeModal.tsx
+│       │   │   │   ├── Header.tsx
+│       │   │   │   ├── ItemCustomization.tsx
+│       │   │   │   └── MenuItemCard.tsx
+│       │   │   └── ui/
+│       │   ├── data/
+│       │   ├── hooks/
+│       │   │   └── useAppState.ts
+│       │   ├── services/
+│       │   ├── styles/
+│       │   │   ├── AdminAnalyticsPage.css
+│       │   │   ├── AdminDronesPage.css
+│       │   │   ├── AdminMenuPage.css
+│       │   │   ├── AdminOrdersPage.css
+│       │   │   ├── AdminPaymentsPage.css
+│       │   │   ├── AdminRestaurants.css
+│       │   │   ├── AdminRolesPage.css
+│       │   │   ├── AdminUsersPage.css
+│       │   │   ├── App.css
+│       │   │   ├── AuthPage.css
+│       │   │   ├── CartContent.css
+│       │   │   ├── CheckoutPage.css
+│       │   │   ├── CustomizeModal.css
+│       │   │   ├── globals.css
+│       │   │   ├── Header.css
+│       │   │   ├── HomePage.css
+│       │   │   ├── MenuItemCard.css
+│       │   │   ├── MenuPage.css
+│       │   │   ├── OrdersPage.css
+│       │   │   ├── RestaurantDashboard.css
+│       │   │   └── SupportPage.css
+│       │   ├── types/
+│       │   │   └── index.ts
+│       │   ├── App.jsx
+│       │   ├── App.tsx
+│       │   ├── index.css
+│       │   ├── index.jsx
+│       │   └── main.tsx
+│       └── vite.config.js
+└── packages/
+    ├── data/
+    ├── hooks/
+    ├── server/
+    │   ├── .env
+    │   ├── db.js
+    │   ├── index.js
+    │   ├── package.json
+    │   ├── middleware/
+    │   │   └── authenticateToken.js
+    │   ├── node_modules/
+    │   ├── routes/
+    │   │   ├── auth.js
+    │   │   ├── drones.js
+    │   │   ├── foodItems.js
+    │   │   ├── orders.js
+    │   │   └── restaurants.js
+    │   └── uploads/
+    ├── types/
+    ├── ui/
+    └── utils/
