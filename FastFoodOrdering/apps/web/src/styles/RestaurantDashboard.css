@@ -69,8 +69,25 @@
   background: #f8f9fa;
   display: flex;
   flex-direction: column;
-  overflow: hidden;
-  margin-right: 2vw;
+  overflow-y: scroll;
+  
+}
+
+.main-content::-webkit-scrollbar {
+  width: 8px;
+}
+
+.main-content::-webkit-scrollbar-track {
+  background: #f1f1f1;
+}
+
+.main-content::-webkit-scrollbar-thumb {
+  background: #c1c1c1;
+  border-radius: 4px;
+}
+
+.main-content::-webkit-scrollbar-thumb:hover {
+  background: #a8a8a8;
 }
 
 /* Top Bar */
