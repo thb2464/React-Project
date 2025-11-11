@@ -16,15 +16,17 @@ export interface ApiMenuItem {
  * để sử dụng trong các component React ở frontend.
  */
 export interface MenuItemType {
-  id: number;
+  id: string;
   name: string;
-  image: string;
-  discountedPrice: number;
   description: string;
+  originalPrice: number;        // ← ADD THIS
+  discountedPrice: number;
+  image: string;
+  veg: boolean;
+  tags: string[];
+  isPopular: boolean;
   rating: number;
   time: string;
   calories: number;
-  isPopular: boolean;
-  tags: string[]; // category sẽ được đưa vào mảng này
 }
 

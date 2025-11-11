@@ -13,22 +13,27 @@ function AuthPage() {
   const [phone, setPhone] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
 
-const { setUser } = useAppState();
-const navigate = useNavigate();
+  const { setUser } = useAppState();
+  const navigate = useNavigate();
 
-const handleSignIn = (e: React.FormEvent) => {
-  e.preventDefault();
-  if (email === 'admin@foodie.com' && password === 'admin123') {
-    const adminUser: User = {
-      id: 'admin-1',
-      email: 'admin@foodie.com',
-      name: 'Admin User',
-      role: 'admin',
-    };
-    setUser(adminUser);
-    navigate('/admin'); // ← MUST BE HERE
-    return;
-  }
+  const handleSignIn = (e: React.FormEvent) => {
+    e.preventDefault();
+
+    console.log('[DEBUG AuthPage] Login attempt:', { email, password });
+
+    if (email === 'admin@foodie.com' && password === 'admin123') {
+      const adminUser: User = {
+        id: 'admin-1',
+        email: 'admin@foodie.com',
+        name: 'Admin User',
+        role: 'admin',
+      };
+      console.log('[DEBUG AuthPage] Setting admin user:', adminUser);
+      setUser(adminUser);
+      alert('Welcome, Admin!');
+      navigate('/admin'); // Now safe - shared state
+      return;
+    }
 
     if (email && password) {
       const user: User = {
@@ -37,6 +42,7 @@ const handleSignIn = (e: React.FormEvent) => {
         name: firstName || 'User',
         role: 'customer',
       };
+      console.log('[DEBUG AuthPage] Setting customer user:', user);
       setUser(user);
       alert('Signed in as customer!');
       navigate('/');
@@ -59,6 +65,7 @@ const handleSignIn = (e: React.FormEvent) => {
       name: `${firstName} ${lastName}`.trim(),
       role: 'customer',
     };
+    console.log('[DEBUG AuthPage] Setting new user:', user);
     setUser(user);
     alert('Account created! Welcome!');
     navigate('/');
@@ -112,7 +119,6 @@ const handleSignIn = (e: React.FormEvent) => {
             <button type="button" className="guest-btn">
               Continue as Guest
             </button>
-
 
           </form>
         )}

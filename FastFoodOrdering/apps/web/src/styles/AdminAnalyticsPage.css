@@ -1,0 +1,246 @@
+/* apps/web/src/styles/AdminAnalyticsPage.css */
+
+.page-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  padding: 24px;
+  background: white;
+  border-radius: 12px 12px 0 0;
+  box-shadow: 0 4px 6px rgba(0,0,0,0.05);
+}
+
+.page-title h1 {
+  font-size: 1.5rem;
+  margin: 0 0 4px 0;
+  color: #1f2937;
+}
+
+.page-title p {
+  color: #6b7280;
+  margin: 0;
+  font-size: 0.875rem;
+}
+
+.table-section {
+  margin-top: 24px;
+}
+
+.table-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 24px 24px 0;
+}
+
+.table-header h2 {
+  margin: 0;
+  font-size: 1.25rem;
+  color: #1f2937;
+}
+
+.table-actions {
+  display: flex;
+  gap: 8px;
+}
+
+.export-btn {
+  background: #6b7280;
+  color: white;
+  border: none;
+  padding: 8px 16px;
+  border-radius: 6px;
+  font-size: 0.875rem;
+  cursor: pointer;
+}
+
+.export-btn:hover {
+  background: #4b5563;
+}
+
+.table-container {
+  background: white;
+  border-radius: 0 0 12px 12px;
+  box-shadow: 0 4px 6px rgba(0,0,0,0.05);
+  overflow: hidden;
+  max-height: 400px;
+  overflow-y: auto;
+}
+
+.analytics-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.875rem;
+}
+
+.analytics-table th {
+  background: #f9fafb;
+  text-align: left;
+  padding: 16px;
+  font-weight: 500;
+  color: #374151;
+  border-bottom: 1px solid #e5e7eb;
+  white-space: nowrap;
+  position: sticky;
+  top: 0;
+  z-index: 10;
+}
+
+.analytics-table td {
+  padding: 16px;
+  border-bottom: 1px solid #f3f4f6;
+  vertical-align: middle;
+}
+
+.rating-display {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.star-filled {
+  color: #fbbf24;
+}
+
+.star-empty {
+  color: #d1d5db;
+}
+
+.rating-number {
+  font-size: 0.875rem;
+  color: #374151;
+  font-weight: 600;
+  margin-left: 4px;
+}
+
+.trend {
+  padding: 4px 8px;
+  border-radius: 4px;
+  font-size: 0.75rem;
+  font-weight: 600;
+}
+
+.trend.up {
+  background: #dcfce7;
+  color: #166534;
+}
+
+.trend.down {
+  background: #fee2e2;
+  color: #991b1b;
+}
+
+.chart-section {
+  margin-top: 24px;
+}
+
+.chart-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 24px 24px 0;
+}
+
+.chart-header h2 {
+  margin: 0;
+  font-size: 1.25rem;
+  color: #1f2937;
+}
+
+.chart-header p {
+  color: #6b7280;
+  margin: 0;
+  font-size: 0.875rem;
+}
+
+.chart-container {
+  background: white;
+  border-radius: 0 0 12px 12px;
+  box-shadow: 0 4px 6px rgba(0,0,0,0.05);
+  overflow: hidden;
+  max-height: 500px;
+  overflow-y: auto;
+}
+
+.bar-chart {
+  padding: 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.bar-item {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 8px 0;
+}
+
+.bar-label {
+  width: 60px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.stars {
+  display: flex;
+  gap: 1px;
+  margin-bottom: 4px;
+}
+
+.star {
+  font-size: 0.75rem;
+  color: #d1d5db;
+}
+
+.bar-value {
+  font-weight: 600;
+  color: #374151;
+  font-size: 0.875rem;
+}
+
+.bar {
+  flex: 1;
+  height: 12px;
+  background: #e5e7eb;
+  border-radius: 6px;
+  overflow: hidden;
+}
+
+.bar-fill {
+  height: 100%;
+  background: #10b981;
+  transition: width 0.3s ease;
+}
+
+.bar-count {
+  width: 40px;
+  text-align: center;
+  font-weight: 500;
+  color: #374151;
+  font-size: 0.875rem;
+}
+
+/* Scrollbar Styling for Modern Look */
+.table-container::-webkit-scrollbar,
+.chart-container::-webkit-scrollbar {
+  width: 8px;
+}
+
+.table-container::-webkit-scrollbar-track,
+.chart-container::-webkit-scrollbar-track {
+  background: #f1f1f1;
+  border-radius: 4px;
+}
+
+.table-container::-webkit-scrollbar-thumb,
+.chart-container::-webkit-scrollbar-thumb {
+  background: #c1c1c1;
+  border-radius: 4px;
+}
+
+.table-container::-webkit-scrollbar-thumb:hover,
+.chart-container::-webkit-scrollbar-thumb:hover {
+  background: #a8a8a8;
+}
