@@ -75,8 +75,9 @@ Traditional food delivery often suffers from:
 
 ---
 
-## Project Strucure
+## 🌳 Project Structure
 
+```plaintext
 FASTFOODORDERING/
 ├── .gitignore
 ├── node_modules/
