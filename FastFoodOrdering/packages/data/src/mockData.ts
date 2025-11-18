@@ -12,10 +12,6 @@ import {
 export const categories: Category[] = [
   { icon: '🍔', name: 'Burgers' },
   { icon: '🍕', name: 'Pizza' },
-  { icon: '🍣', name: 'Sushi' },
-  { icon: '🥗', name: 'Salads' },
-  { icon: '🍰', name: 'Desserts' },
-  { icon: '🥤', name: 'Beverages' },
   { icon: '🍲', name: 'Biryani' },
   { icon: '🍛', name: 'Bowl' },
   { icon: '🌯', name: 'Rolls' },

@@ -8,6 +8,7 @@
 .sidebar {
   width: 200px;
   flex-shrink: 0;
+  padding-right: 5%;
 }
 
 .sidebar h3 {
@@ -15,49 +16,49 @@
   margin-bottom: 10px;
 }
 
-.category-list {
+.menu-category-list {
   list-style: none;
   padding: 0;
   margin: 0 0 20px 0;
 }
 
-.category-list li {
+.menu-category-list li {
   padding: 10px;
   cursor: pointer;
   border-radius: 4px;
   margin-bottom: 5px;
 }
 
-.category-list li.active {
+.menu-category-list li.active {
   background-color: #000;
   color: #fff;
 }
 
-.dietary-list {
+.menu-dietary-list {
   list-style: none;
   padding: 0;
   margin: 0 0 20px 0;
 }
 
-.dietary-list li {
+.menu-dietary-list li {
   display: flex;
   align-items: center;
   margin-bottom: 10px;
 }
 
-.dietary-list input {
+.menu-dietary-list input {
   margin-right: 10px;
 }
 
-.price-range {
+.menu-price-range {
   margin-top: 10px;
 }
 
-.price-range input {
+.menu-price-range input {
   width: 100%;
 }
 
-.price-labels {
+.menu-price-labels {
   display: flex;
   justify-content: space-between;
   font-size: 0.9rem;
@@ -66,6 +67,7 @@
 
 .main-content {
   flex: 1;
+  overflow: hidden;
 }
 
 .header-sort {
@@ -96,8 +98,12 @@
 
 .menu-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(250px, 270px));
   gap: 20px;
+  justify-content: center;
+  max-width: 1200px;        /* Prevents infinite stretch */
+  margin: 0 auto;           /* Centers the grid */
+  padding: 0 16px;
 }
 
 .pagination {
@@ -111,6 +117,7 @@
 .page-btn {
   padding: 8px 12px;
   background-color: #f0f0f0;
+  color: #000;
   border: 1px solid #ccc;
   border-radius: 4px;
   cursor: pointer;
@@ -137,7 +144,7 @@
     flex-direction: column;
   }
 
-  .sidebar {
+  .menu-sidebar {
     width: 100%;
   }
 

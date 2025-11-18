@@ -1,37 +1,68 @@
-import React from 'react';
+import React, { useState } from 'react';
 import {
   View,
   Text,
   StyleSheet,
   TouchableOpacity,
   TextInput,
+  Alert,
+  ActivityIndicator,
 } from 'react-native';
-import { useAuth } from '@fastfoodordering/hooks';
+import { useAppState } from '@fastfoodordering/store';
 import Ionicons from '@expo/vector-icons/Ionicons';
 
 export default function AuthScreen() {
-  // 1. Get the login function from our new hook
-  const { login } = useAuth();
+  const { login } = useAppState(); 
+  
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [isLoading, setIsLoading] = useState(false);
+
+  const handleSignIn = async () => {
+    if (!email || !password) {
+      return Alert.alert('Error', 'Please enter email and password.');
+    }
+    
+    setIsLoading(true);
+    try {
+      await login(email, password);
+    } catch (error: any) {
+      Alert.alert('Login Failed', error.message);
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
   return (
     <View style={styles.container}>
       <Ionicons name="fast-food-outline" size={80} color="#000" />
       <Text style={styles.title}>Welcome!</Text>
-      
       <TextInput
         style={styles.input}
         placeholder="Email"
         keyboardType="email-address"
         autoCapitalize="none"
+        value={email}
+        onChangeText={setEmail}
       />
       <TextInput
         style={styles.input}
         placeholder="Password"
         secureTextEntry
+        value={password}
+        onChangeText={setPassword}
       />
-      
-      <TouchableOpacity style={styles.loginButton} onPress={login}>
-        <Text style={styles.loginButtonText}>Login</Text>
+
+      <TouchableOpacity
+        style={styles.loginButton}
+        onPress={handleSignIn}
+        disabled={isLoading}
+      >
+        {isLoading ? (
+          <ActivityIndicator color="#fff" />
+        ) : (
+          <Text style={styles.loginButtonText}>Login</Text>
+        )}
       </TouchableOpacity>
     </View>
   );

@@ -6,35 +6,42 @@ import {
   TouchableOpacity,
   StyleSheet,
 } from 'react-native';
-
-// --- SHARED IMPORT ---
 import { MenuItemType } from '@fastfoodordering/types';
-// --- END SHARED IMPORT ---
-
+import { useAppState } from '@fastfoodordering/store';
 interface Props {
   item: MenuItemType;
 }
 
+const SERVER_URL = 'http://192.168.2.253:3000';
+
+const getImageUrl = (url: string) => {
+  if (!url) return 'https://via.placeholder.com/150';
+  if (url.startsWith('http')) return url;
+  return `${SERVER_URL}/uploads/${url}`;
+};
+
 function MenuItemCard({ item }: Props) {
-  const handleAddToCart = () => {
-    // This logic can be shared or implemented natively
-    console.log(`Added ${item.name} to cart`);
-  };
+  const { addToCart } = useAppState();
 
   return (
-    // --- 1. NATIVE UI (THE "FACE") ---
     <View style={styles.card}>
-      <Image source={{ uri: item.image }} style={styles.cardImage} />
+      <Image 
+        source={{ uri: getImageUrl(item.img_url) }} 
+        style={styles.cardImage} 
+      />
       <View style={styles.cardBody}>
         <Text style={styles.cardTitle} numberOfLines={1}>
           {item.name}
         </Text>
         <Text style={styles.cardDescription} numberOfLines={2}>
-          {item.description}
+          {item.category} 
         </Text>
         <View style={styles.cardFooter}>
-          <Text style={styles.cardPrice}>${item.discountedPrice.toFixed(2)}</Text>
-          <TouchableOpacity style={styles.addToCartBtn} onPress={handleAddToCart}>
+          <Text style={styles.cardPrice}>${Number(item.price).toFixed(2)}</Text>
+          <TouchableOpacity 
+            style={styles.addToCartBtn} 
+            onPress={() => addToCart(item)}
+          >
             <Text style={styles.addToCartBtnText}>Add</Text>
           </TouchableOpacity>
         </View>
@@ -43,19 +50,18 @@ function MenuItemCard({ item }: Props) {
   );
 }
 
-// --- 2. STYLING (THE CSS REPLACEMENT) ---
 const styles = StyleSheet.create({
   card: {
     backgroundColor: '#FFFFFF',
     borderRadius: 8,
-    marginVertical: 8, // Use vertical margin for a list
+    marginVertical: 8,
     marginHorizontal: 16,
-    elevation: 3, // Android shadow
-    shadowColor: '#000', // iOS shadow
+    elevation: 3,
+    shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.1,
     shadowRadius: 2,
-    overflow: 'hidden', // Ensures image corners are rounded
+    overflow: 'hidden',
   },
   cardImage: {
     width: '100%',
@@ -73,7 +79,7 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: '#666',
     marginBottom: 8,
-    height: 35, // Ensures consistent card height
+    height: 35,
   },
   cardFooter: {
     flexDirection: 'row',
