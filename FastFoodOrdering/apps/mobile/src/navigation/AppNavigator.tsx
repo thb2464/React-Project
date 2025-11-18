@@ -1,12 +1,13 @@
 import React from 'react';
-import Ionicons from '@expo/vector-icons/Ionicons'; //Icons for mobile
 import { NavigationContainer } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
-import { AuthProvider, useAuth } from '@fastfoodordering/hooks';
+import Ionicons from '@expo/vector-icons/Ionicons';
+
+import { useAppState } from '@fastfoodordering/store';
 import { RootStackParamList, RootTabParamList } from './types';
 
-// Import all screens
+// --- Import Screens ---
 import HomePage from '../screens/HomePage';
 import MenuScreen from '../screens/MenuScreen';
 import OrdersScreen from '../screens/OrdersScreen';
@@ -14,60 +15,31 @@ import ProfileScreen from '../screens/ProfileScreen';
 import CheckoutScreen from '../screens/CheckoutScreen';
 import SupportScreen from '../screens/SupportScreen';
 import AuthScreen from '../screens/AuthScreen';
-import RestaurantDashboardScreen from '../screens/RestaurantDashboardScreen';
 
 // --- Create Navigators ---
 const Stack = createNativeStackNavigator<RootStackParamList>();
-const Tab = createBottomTabNavigator<RootTabParamList>();
+const CustomerTab = createBottomTabNavigator<RootTabParamList>();
 
-/**
- * This is the stack for the "Home" tab.
- * It contains the Home screen and the Menu screen.
- */
+// --- STACK: Customer Home ---
 function HomeStack() {
   return (
-    <Stack.Navigator>
-      <Stack.Screen
-        name="Home"
-        component={HomePage}
-        options={{ title: 'Welcome' }}
-      />
-      <Stack.Screen
-        name="Menu"
-        component={MenuScreen}
-        options={{ title: 'Our Menu' }}
-      />
-      <Stack.Screen
-        name="Checkout"
-        component={CheckoutScreen}
-        options={{ title: 'Checkout' }}
-      />
-      <Stack.Screen
-        name="Support"
-        component={SupportScreen}
-        options={{ title: 'Support' }}
-      />
-      <Stack.Screen
-        name="RestaurantDashboard"
-        component={RestaurantDashboardScreen}
-        options={{ title: 'Admin Dashboard' }}
-      />
-
+    <Stack.Navigator screenOptions={{ headerShown: false }}>
+      <Stack.Screen name="Home" component={HomePage} />
+      <Stack.Screen name="Menu" component={MenuScreen} />
+      <Stack.Screen name="Checkout" component={CheckoutScreen} />
+      <Stack.Screen name="Support" component={SupportScreen} />
     </Stack.Navigator>
   );
 }
 
-/**
- * This is the main Bottom Tab Navigator for the app.
- */
-function AppTabs() {
+// --- TABS: Customer App ---
+function CustomerTabs() {
   return (
-    <Tab.Navigator
+    <CustomerTab.Navigator
       screenOptions={({ route }) => ({
         headerShown: false,
         tabBarIcon: ({ focused, color, size }) => {
           let iconName: React.ComponentProps<typeof Ionicons>['name'] = 'alert';
-
           if (route.name === 'HomeTab') {
             iconName = focused ? 'home' : 'home-outline';
           } else if (route.name === 'OrdersTab') {
@@ -75,46 +47,47 @@ function AppTabs() {
           } else if (route.name === 'ProfileTab') {
             iconName = focused ? 'person' : 'person-outline';
           }
-
           return <Ionicons name={iconName} size={size} color={color} />;
         },
-        tabBarActiveTintColor: '#000000', // Set active icon color
-        tabBarInactiveTintColor: 'gray', // Set inactive icon color
+        tabBarActiveTintColor: '#000000',
+        tabBarInactiveTintColor: 'gray',
       })}
     >
-      <Tab.Screen
+      <CustomerTab.Screen
         name="HomeTab"
         component={HomeStack}
         options={{ title: 'Home' }}
       />
-      <Tab.Screen
+      <CustomerTab.Screen
         name="OrdersTab"
         component={OrdersScreen}
         options={{ title: 'My Orders' }}
       />
-      <Tab.Screen
+      <CustomerTab.Screen
         name="ProfileTab"
         component={ProfileScreen}
         options={{ title: 'Profile' }}
       />
-    </Tab.Navigator>
+    </CustomerTab.Navigator>
   );
 }
 
+// --- ROOT: Decides which app to show ---
 function RootNavigator() {
-  const { isLoggedIn } = useAuth();
-  return isLoggedIn ? <AppTabs /> : <AuthScreen />;
+  const { user } = useAppState();
+
+  if (!user) {
+    return <AuthScreen />;
+  }
+  
+  return <CustomerTabs />;
 }
 
+// --- Main export ---
 export default function AppNavigator() {
   return (
-    // 1. The AuthProvider wraps everything that needs auth
-    <AuthProvider>
-      {/* 2. The NavigationContainer wraps the navigator */}
-      <NavigationContainer>
-        {/* 3. RootNavigator now decides which screen to show */}
-        <RootNavigator />
-      </NavigationContainer>
-    </AuthProvider>
+    <NavigationContainer>
+      <RootNavigator />
+    </NavigationContainer>
   );
 }

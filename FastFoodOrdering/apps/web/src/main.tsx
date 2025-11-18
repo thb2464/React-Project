@@ -5,7 +5,10 @@ import { BrowserRouter } from 'react-router-dom';
 import App from './App';
 import './index.css';
 import { useAppState } from './hooks/useAppState';
+import { setApiBaseUrl } from '@fastfoodordering/utils';
 
+
+setApiBaseUrl('http://localhost:3000/api');
 // Component nhỏ để load user từ localStorage (hook hợp lệ)
 function InitPersistedState() {
   const { loadPersistedState } = useAppState();

@@ -1,45 +1,51 @@
 import { useState, useEffect } from 'react';
-import { fetchMenuData, categories } from '@fastfoodordering/data';
-import { MenuCategoryType, MenuItemType } from '@fastfoodordering/types';
+import { apiClient } from '@fastfoodordering/utils';
+import { MenuItemType, Category } from '@fastfoodordering/types';
 
 export function useMenu() {
-  const [menuData, setMenuData] = useState<Record<string, MenuCategoryType[]>>({});
+  // We will build categories dynamically from the items
+  const [categories, setCategories] = useState<Category[]>([]);
   const [selectedCategory, setSelectedCategory] = useState('All Items');
   const [filteredItems, setFilteredItems] = useState<MenuItemType[]>([]);
+  const [allItems, setAllItems] = useState<MenuItemType[]>([]);
 
-  // Load all menu data once
   useEffect(() => {
     const loadMenu = async () => {
-      const data = await fetchMenuData();
-      setMenuData(data);
-      // Set the default view to all items
-      const allItems = Object.values(data).flatMap((cat) =>
-        cat.flatMap((subCat) => subCat.items)
-      );
-      setFilteredItems(allItems);
+      try {
+        // Call the Real API
+        const data: MenuItemType[] = await apiClient('/food-items', 'GET');
+        
+        setAllItems(data);
+        setFilteredItems(data);
+
+        // Extract unique categories from the data
+        const uniqueCats = Array.from(new Set(data.map(item => item.category)));
+        const catList = [
+          { name: 'All Items', icon: '🌍' },
+          ...uniqueCats.map(c => ({ name: c, icon: '🍽️' }))
+        ];
+        setCategories(catList);
+
+      } catch (error) {
+        console.error("Failed to load menu", error);
+      }
     };
     loadMenu();
   }, []);
 
-  // Function to change the category
   const handleCategoryChange = (catName: string) => {
     setSelectedCategory(catName);
     if (catName === 'All Items') {
-      const allItems = Object.values(menuData).flatMap((cat) =>
-        cat.flatMap((subCat) => subCat.items)
-      );
       setFilteredItems(allItems);
     } else {
-      const selected = menuData[catName] || [];
-      const items = selected.flatMap((subCat) => subCat.items);
+      const items = allItems.filter((item) => item.category === catName);
       setFilteredItems(items);
     }
   };
 
-  // Return everything the UI will need
   return {
     filteredItems,
-    categories: [{ name: 'All Items', icon: '🌍' }, ...categories], // Add 'All Items'
+    categories,
     selectedCategory,
     handleCategoryChange,
   };

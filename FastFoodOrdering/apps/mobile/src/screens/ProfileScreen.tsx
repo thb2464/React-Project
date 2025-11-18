@@ -10,9 +10,8 @@ import {
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { useNavigation } from '@react-navigation/native';
 import { ProfileScreenNavigationProp } from '../navigation/types';
-import { useAuth } from '@fastfoodordering/hooks';
+import { useAppState } from '@fastfoodordering/store';
 
-// --- Reusable list item component ---
 type ProfileRowProps = {
   icon: React.ComponentProps<typeof Ionicons>['name'];
   title: string;
@@ -23,7 +22,7 @@ type ProfileRowProps = {
 const ProfileRow: React.FC<ProfileRowProps> = ({
   icon,
   title,
-  onPress ,
+  onPress,
   color = '#333',
 }) => (
   <TouchableOpacity style={styles.row} onPress={onPress}>
@@ -33,26 +32,25 @@ const ProfileRow: React.FC<ProfileRowProps> = ({
   </TouchableOpacity>
 );
 
-// --- Main Profile Screen ---
 export default function ProfileScreen() {
   const navigation = useNavigation<ProfileScreenNavigationProp>();
-  const { logout } = useAuth();
-  const handleLogout = () => {logout()  
-  }
+  const { logout, user } = useAppState();
+
+  const handleLogout = () => {
+    logout();
+  };
 
   return (
     <ScrollView style={styles.container}>
-      {/* 1. Profile Header */}
       <View style={styles.header}>
         <Image
           style={styles.avatar}
-          source={{ uri: 'https://i.pravatar.cc/150' }} // Placeholder avatar
+          source={{ uri: 'https://i.pravatar.cc/150' }}
         />
-        <Text style={styles.name}>Not justB</Text>
-        <Text style={styles.email}>not.justB@example.com</Text>
+        <Text style={styles.name}>{user?.full_name || 'User'}</Text>
+        <Text style={styles.email}>{user?.email || 'email@example.com'}</Text>
       </View>
 
-      {/* 2. Menu Options */}
       <View style={styles.menuGroup}>
         <ProfileRow
           icon="person-outline"
@@ -74,28 +72,20 @@ export default function ProfileScreen() {
           title="Support"
           onPress={() => navigation.navigate('HomeTab', { screen: 'Support' })}
         />
-        <ProfileRow
-          icon="podium-outline"
-          title="Restaurant Dashboard"
-          onPress={() => navigation.navigate('HomeTab', { screen: 'RestaurantDashboard' })}
-        />
-
       </View>
 
-      {/* 3. Logout Button */}
       <View style={styles.menuGroup}>
         <ProfileRow
           icon="log-out-outline"
           title="Log Out"
           onPress={handleLogout}
-          color="#FF3B30" // Red color for logout
+          color="#FF3B30"
         />
       </View>
     </ScrollView>
   );
 }
 
-// 4. Add the Styles
 const styles = StyleSheet.create({
   container: {
     flex: 1,

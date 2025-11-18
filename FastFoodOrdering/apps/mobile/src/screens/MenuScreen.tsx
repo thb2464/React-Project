@@ -6,16 +6,13 @@ import {
   FlatList,
   TouchableOpacity,
 } from 'react-native';
-
-// Import our new hook and the components/types
+import { useNavigation } from '@react-navigation/native';
 import { useMenu } from '@fastfoodordering/hooks';
 import { Category } from '@fastfoodordering/types';
 import MenuItemCard from '../components/shared/MenuItemCard';
-import { useNavigation } from '@react-navigation/native';
 import { MenuScreenNavigationProp } from '../navigation/types';
 
 function MenuScreen() {
-  // 1. Get all logic hooks
   const {
     filteredItems,
     categories,
@@ -23,61 +20,56 @@ function MenuScreen() {
     handleCategoryChange,
   } = useMenu();
   const navigation = useNavigation<MenuScreenNavigationProp>();
-  // 2. Render the UI
+
   return (
-  <View style={styles.container}>
-    {/* Category List (Replaces Sidebar) */}
-    <View>
-      <FlatList
-        data={categories as Category[]} // Cast as Category[]
-        horizontal={true}
-        showsHorizontalScrollIndicator={false}
-        keyExtractor={(item) => item.name}
-        renderItem={({ item }) => (
-          <TouchableOpacity
-            style={[
-              styles.categoryButton,
-              selectedCategory === item.name && styles.categoryButtonActive,
-            ]}
-            onPress={() => handleCategoryChange(item.name)}
-          >
-            <Text
+    <View style={styles.container}>
+      <View>
+        <FlatList
+          data={categories as Category[]}
+          horizontal={true}
+          showsHorizontalScrollIndicator={false}
+          keyExtractor={(item) => item.name}
+          renderItem={({ item }) => (
+            <TouchableOpacity
               style={[
-                styles.categoryText,
-                selectedCategory === item.name && styles.categoryTextActive,
+                styles.categoryButton,
+                selectedCategory === item.name && styles.categoryButtonActive,
               ]}
+              onPress={() => handleCategoryChange(item.name)}
             >
-              {item.name}
-            </Text>
-          </TouchableOpacity>
-        )}
-        contentContainerStyle={styles.categoryListContainer}
-      />
-    </View>
+              <Text
+                style={[
+                  styles.categoryText,
+                  selectedCategory === item.name && styles.categoryTextActive,
+                ]}
+              >
+                {item.name}
+              </Text>
+            </TouchableOpacity>
+          )}
+          contentContainerStyle={styles.categoryListContainer}
+        />
+      </View>
 
-    {/* This new View allows the list and button to share space */}
-    <View style={{ flex: 1 }}>
-      {/* Menu Item List (Replaces Main Content) */}
-      <FlatList
-        data={filteredItems}
-        keyExtractor={(item, index) => item.id + item.name + index}
-        renderItem={({ item }) => <MenuItemCard item={item} />}
-        contentContainerStyle={styles.menuListContainer}
-      />
+      <View style={{ flex: 1 }}>
+        <FlatList
+          data={filteredItems}
+          keyExtractor={(item) => item.item_id.toString()}
+          renderItem={({ item }) => <MenuItemCard item={item} />}
+          contentContainerStyle={styles.menuListContainer}
+        />
 
-      {/* 3. ADD THIS CHECKOUT BUTTON */}
-      <TouchableOpacity
-        style={styles.checkoutButton}
-        onPress={() => navigation.navigate('Checkout')}
-      >
-        <Text style={styles.checkoutButtonText}>Go to Checkout</Text>
-      </TouchableOpacity>
+        <TouchableOpacity
+          style={styles.checkoutButton}
+          onPress={() => navigation.navigate('Checkout')}
+        >
+          <Text style={styles.checkoutButtonText}>Go to Checkout</Text>
+        </TouchableOpacity>
+      </View>
     </View>
-  </View>
-);
+  );
 }
 
-// 3. Add the Styles
 const styles = StyleSheet.create({
   container: {
     flex: 1,

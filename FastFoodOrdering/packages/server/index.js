@@ -29,6 +29,12 @@ app.use('/api/orders',      orderRoutes);
 app.use('/api/drones',      droneRoutes);
 app.use('/api/food-items',  foodItemRoutes);
 app.use('/api/payments',    paymentRoutes);
-app.use('/api/admin', adminRoutes);   // <--- THÊM
+app.use('/api/admin', adminRoutes);
+app.use((req, res, next) => {
+    console.log(`[SERVER] Received: ${req.method} ${req.url}`);
+    next();
+});
 
-app.listen(PORT, () => console.log(`Server http://localhost:${PORT}`));
+app.use(express.urlencoded({ extended: true }));
+
+app.listen(PORT,'0.0.0.0', () => console.log(`Server http://0.0.0.0:${PORT}`));
