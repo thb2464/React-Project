@@ -1,112 +1,134 @@
 // apps/web/src/components/shared/Header.tsx
-import React, { useState, useEffect } from 'react'
-import '../../styles/Header.css'
-import { categories } from '../../data/mockData'
-import { Category } from '../../types'
-import { useAppState } from '../../hooks/useAppState'
 
-// Mock user state (replace with actual auth context if available)
-const mockCurrentUser = null; // Set to { role: 'user' } or { role: 'admin' } for testing
-const mockIsAdmin = false;
+import React, { useState, useRef, useEffect } from 'react';
+import '../../styles/Header.css';
+import { useAppState } from '../../hooks/useAppState';
+import { useNavigate } from 'react-router-dom';
 
 function Header() {
   const [isAccountOpen, setIsAccountOpen] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
-  const { cart } = useAppState();
 
-  // Calculate item count based on quantity
-  useEffect(() => {
-    const itemCount = cart.reduce((sum, item) => sum + item.quantity, 0);
-    // No need to set state if using directly in render
-  }, [cart]);
+  const { user, cart, logout } = useAppState();
+  const navigate = useNavigate();
+  const accountRef = useRef<HTMLDivElement>(null);
+
+  const totalItems = cart.reduce((sum, item) => sum + item.quantity, 0);
 
   const handleLogout = () => {
-    // Implement logout logic, e.g., remove cookies, clear user
-    console.log('Logged out');
+    logout();
+    setIsAccountOpen(false);
+    navigate('/');
   };
+
+  // Close dropdown when click outside
+  useEffect(() => {
+    const handleClickOutside = (e: MouseEvent) => {
+      if (accountRef.current && !accountRef.current.contains(e.target as Node)) {
+        setIsAccountOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
+
 
   return (
     <header className="header">
-      <div className="logo" onClick={() => window.location.href = '/'}>FoodieExpress</div>
-      
-      {/* Desktop Nav */}
+      <div className="logo" onClick={() => navigate('/')}>
+        FoodieExpress
+      </div>
+
       <nav className="nav desktop-nav">
         <ul>
-          <li onClick={() => window.location.href = '/'}>Home</li>
-          <li onClick={() => window.location.href = '/menu'}>Menu</li>
-          <li onClick={() => window.location.href = '/orders'}>Orders</li>
-          <li onClick={() => window.location.href = '/support'}>Support</li>
+          <li onClick={() => navigate('/')}>Home</li>
+          <li onClick={() => navigate('/menu')}>Menu</li>
+          <li onClick={() => navigate('/orders')}>Orders</li>
+          <li onClick={() => navigate('/support')}>Support</li>
+          <li onClick={() => navigate('/restaurants')}>Restaurants</li>
         </ul>
       </nav>
-      
+
       <div className="search">
         <input type="text" placeholder="Search food..." />
       </div>
-      
+
       <div className="icons">
-        {/* Account Section */}
-        <div 
-          className="account" 
-          onMouseEnter={() => setIsAccountOpen(true)} 
-          onMouseLeave={() => setIsAccountOpen(false)}
-        >
-          {mockCurrentUser ? (
-            <div className="account-icon">👤 Account</div>
+        {/* ACCOUNT SECTION - FIXED */}
+        <div className="account" ref={accountRef}>
+          {user ? (
+            <div
+              className="account-icon"
+              onClick={() => setIsAccountOpen(!isAccountOpen)} // ← Click để mở/đóng
+              style={{ cursor: 'pointer' }}
+            >
+             👤 Hi, {user.name}
+            </div>
           ) : (
-            <button className="sign-in" onClick={() => window.location.href = '/auth'}>Sign in</button>
+            <button className="sign-in" onClick={() => navigate('/auth')}>
+              Sign In
+            </button>
           )}
-          
-          {isAccountOpen && mockCurrentUser && (
+
+          {isAccountOpen && user && (
             <div className="account-dropdown">
-              {!mockIsAdmin && (
+              {user.role === 'customer' && (
                 <>
-                  <div onClick={() => window.location.href = '/profile'}>My Profile</div>
-                  <div onClick={() => window.location.href = '/orders'}>Orders</div>
+                  <div onClick={() => { navigate('/profile'); setIsAccountOpen(false); }}>My Profile</div>
+                  <div onClick={() => { navigate('/orders'); setIsAccountOpen(false); }}>My Orders</div>
                 </>
               )}
-              {mockIsAdmin && (
+              {user.role === 'admin' && (
                 <>
-                  <div onClick={() => window.location.href = '/admin/items'}>Manage Items</div>
-                  <div onClick={() => window.location.href = '/admin/categories'}>Manage Categories</div>
-                  <div onClick={() => window.location.href = '/admin/reports'}>Reports</div>
-                  <div onClick={() => window.location.href = '/admin/orders'}>All Orders</div>
+                  <div onClick={() => { navigate('/admin'); setIsAccountOpen(false); }}>Admin Dashboard</div>
+                  <div onClick={() => { navigate('/admin/orders'); setIsAccountOpen(false); }}>Manage Orders</div>
                 </>
               )}
-              <div onClick={handleLogout}>Logout</div>
+              {user.role === 'owner' && (
+                <>
+                  <div onClick={() => { navigate('/owner'); setIsAccountOpen(false); }}>Owner Dashboard</div>
+                </>
+              )}
+              <div onClick={handleLogout} className="logout-btn">
+                Logout
+              </div>
             </div>
           )}
         </div>
-        
-        {/* Favorites/Wishlist */}
-        <div className="favorites" onClick={() => window.location.href = '/favorites'}>
+
+        <div className="favorites" onClick={() => navigate('/favorites')}>
           ❤️ Favorites
         </div>
-        
-        {/* Cart */}
-        <div className="cart-container" onClick={() => window.location.href = '/cart'}>
+
+        <div className="cart-container" onClick={() => navigate('/cart')}>
           <span className="cart">🛒</span>
-          <span>{cart.reduce((sum, item) => sum + item.quantity, 0) > 0 ? `Cart (${cart.reduce((sum, item) => sum + item.quantity, 0)})` : 'Cart'}</span>
+          {totalItems > 0 && <span className="cart-count">({totalItems})</span>}
         </div>
       </div>
-      
-      {/* Hamburger for Mobile */}
+
       <div className="hamburger" onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}>
-        ☰
+        Menu
       </div>
-      
-      {/* Mobile Menu */}
+
       {isMobileMenuOpen && (
         <div className="mobile-menu">
           <ul>
-            <li onClick={() => window.location.href = '/'}>Home</li>
-            <li onClick={() => window.location.href = '/menu'}>Menu</li>
-            <li onClick={() => window.location.href = '/orders'}>Orders</li>
-            <li onClick={() => window.location.href = '/support'}>Support</li>
+            <li onClick={() => { navigate('/'); setIsMobileMenuOpen(false); }}>Home</li>
+            <li onClick={() => { navigate('/menu'); setIsMobileMenuOpen(false); }}>Menu</li>
+            <li onClick={() => { navigate('/orders'); setIsMobileMenuOpen(false); }}>Orders</li>
+            {user ? (
+              <>
+                <li onClick={() => { navigate('/profile'); setIsMobileMenuOpen(false); }}>Profile</li>
+                <li onClick={() => { handleLogout(); setIsMobileMenuOpen(false); }}>Logout</li>
+              </>
+            ) : (
+              <li onClick={() => { navigate('/auth'); setIsMobileMenuOpen(false); }}>Sign In</li>
+            )}
           </ul>
         </div>
       )}
     </header>
-  )
+  );
 }
 
-export default Header
+export default Header;

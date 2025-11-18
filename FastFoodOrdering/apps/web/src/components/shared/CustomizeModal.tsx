@@ -51,97 +51,73 @@ const addonOptions = [
   return (
     <div className="modal-overlay" onClick={onClose}>
       <div className="modal-content" onClick={(e) => e.stopPropagation()}>
-        <button className="modal-close" onClick={onClose}>×</button>
+        <button onClick={onClose} className="modal-close">×</button>
 
-        <div className="modal-header">
-          <img src={item.image} alt={item.name} className="modal-image" />
-          <div>
-            <h2>{item.name}</h2>
-            <p className="modal-desc">{item.description}</p>
-            <div className="modal-rating">
-              {item.rating} ⭐ {item.time} · {item.calories} cal
-            </div>
-          </div>
+        <img src={item.image} alt={item.name} className="modal-image" />
+        <h2>{item.name}</h2>
+        <p className="modal-price">
+          Giá gốc: {basePrice.toLocaleString('vi-VN')}₫
+        </p>
+        <p className="modal-desc">{item.description}</p>
+
+        {/* Size */}
+        <h3>Size</h3>
+        <div className="options">
+          {sizeOptions.map(opt => (
+            <label key={opt.value}>
+              <input
+                type="radio"
+                name="size"
+                value={opt.value}
+                checked={selectedSize === opt.value}
+                onChange={(e) => setSelectedSize(e.target.value as 'small' | 'medium' | 'large')}
+              />
+              {opt.label} ({opt.price.toLocaleString('vi-VN')}₫)
+            </label>
+          ))}
         </div>
 
-        <div className="modal-body">
-          {/* Size */}
-          <section>
-            <h3>Size</h3>
-            <div className="options-group">
-              {sizeOptions.map(opt => (
-                <label key={opt.value} className={`option-radio ${selectedSize === opt.value ? 'selected' : ''}`}>
-                  <input
-                     type="radio"
-                    name="size"
-                    value={opt.value}
-                    checked={selectedSize === opt.value}
-                    onChange={(e) => setSelectedSize(e.target.value as any)}
-                  />
-                  <span>
-                    {opt.label}{' '}
-                    {opt.price !== basePrice && (
-                  <span className="price-diff">
-                    ({opt.price > basePrice ? '+' : ''}{Math.round(opt.price - basePrice).toLocaleString('vi-VN')}đ)
-                  </span>
-                )}
-                  </span>
-                </label>
-              ))}
-            </div>
-          </section>
-
-          {/* Add-ons */}
-          <section>
-            <h3>Add-ons</h3>
-            <div className="options-group">
-              {addonOptions.map(opt => (
-                <label key={opt.value} className="option-checkbox">
-                  <input
-                    type="checkbox"
-                    value={opt.value}
-                    checked={selectedAddons.includes(opt.value)}
-                    onChange={(e) => {
-                      if (e.target.checked) {
-                        setSelectedAddons([...selectedAddons, opt.value]);
-                      } else {
-                        setSelectedAddons(selectedAddons.filter(a => a !== opt.value));
-                      }
-                    }}
-                  />
-                  <span>{opt.label} (+{opt.price.toLocaleString('vi-VN')}₫)</span>
-                </label>
-              ))}
-            </div>
-          </section>
-
-          {/* Spice Level */}
-          <section>
-            <h3>Spice Level</h3>
-            <div className="spice-level">
-              {(['mild', 'medium', 'hot', 'extra-hot'] as const).map(level => (
-                <button
-                  key={level}
-                  className={`spice-btn ${spiceLevel === level ? 'selected' : ''}`}
-                  onClick={() => setSpiceLevel(level)}
-                >
-                  {level.charAt(0).toUpperCase() + level.slice(1).replace('-', ' ')}
-                </button>
-              ))}
-            </div>
-          </section>
-
-          {/* Special Instructions */}
-          <section>
-            <h3>Special Instructions</h3>
-            <textarea
-              placeholder="Any special requests or allergies?"
-              value={instructions}
-              onChange={(e) => setInstructions(e.target.value)}
-              rows={2}
-            />
-          </section>
+        {/* Add-ons */}
+        <h3>Thêm topping</h3>
+        <div className="options">
+          {addonOptions.map(opt => (
+            <label key={opt.value}>
+              <input
+                type="checkbox"
+                checked={selectedAddons.includes(opt.value)}
+                onChange={(e) => {
+                  if (e.target.checked) {
+                    setSelectedAddons([...selectedAddons, opt.value]);
+                  } else {
+                    setSelectedAddons(selectedAddons.filter(a => a !== opt.value));
+                  }
+                }}
+              />
+              {opt.label} (+{opt.price.toLocaleString('vi-VN')}₫)
+            </label>
+          ))}
         </div>
+
+        {/* Spice */}
+        <h3>Độ cay</h3>
+        <div className="spice-options">
+          {['mild', 'medium', 'hot', 'extra-hot'].map(level => (
+            <button
+              key={level}
+              className={spiceLevel === level ? 'selected' : ''}
+              onClick={() => setSpiceLevel(level as 'mild' | 'medium' | 'hot' | 'extra-hot')}
+            >
+              {level.toUpperCase()}
+            </button>
+          ))}
+        </div>
+
+        <h3>Ghi chú</h3>
+        <textarea
+          value={instructions}
+          onChange={(e) => setInstructions(e.target.value)}
+          placeholder="Không hành, thêm ớt..."
+        />
 
         <div className="modal-footer">
           <div className="quantity">
@@ -149,8 +125,8 @@ const addonOptions = [
             <span>{quantity}</span>
             <button onClick={() => setQuantity(quantity + 1)}>+</button>
           </div>
-          <button className="add-to-cart-btn" onClick={handleAddToCart}>
-            Add to Cart · {totalPrice.toLocaleString('vi-VN')}₫
+          <button onClick={handleAddToCart}>
+            Thêm {totalPrice.toLocaleString('vi-VN')}₫
           </button>
         </div>
       </div>

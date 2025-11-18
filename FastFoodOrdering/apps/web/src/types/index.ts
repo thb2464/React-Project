@@ -3,12 +3,14 @@
  * Tên các thuộc tính khớp với tên các cột trong database.
  */
 export interface ApiMenuItem {
-  item_id: number;
+  item_id: string;
   name: string;
-  price: string; // PostgreSQL trả về kiểu decimal dưới dạng string
-  img_url: string | null;
   description: string | null;
-  category: string; // <-- SỬA LỖI: Thêm dòng này
+  price: string;
+  img_url: string | null;
+  category: string;
+  is_available: boolean;
+  veg?: boolean;
 }
 
 /**
@@ -18,15 +20,26 @@ export interface ApiMenuItem {
 export interface MenuItemType {
   id: string;
   name: string;
-  description: string;
-  originalPrice: number;        // ← ADD THIS
-  discountedPrice: number;
   image: string;
-  veg: boolean;
+  discountedPrice: number;
+  originalPrice: number;
+  description: string;
   tags: string[];
-  isPopular: boolean;
   rating: number;
   time: string;
   calories: number;
+  isPopular: boolean;
+  veg: boolean;
+  // Customization options from JSONB
+  options?: any[];
 }
 
+export type UserRole = 'customer' | 'owner' | 'admin';
+
+export interface User {
+  id: string;           // user_id from DB
+  name: string;         // full_name
+  email: string;
+  role: UserRole;
+  token?: string;       // JWT
+}

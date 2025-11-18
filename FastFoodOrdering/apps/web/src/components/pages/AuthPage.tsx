@@ -1,8 +1,13 @@
 // apps/web/src/components/pages/AuthPage.tsx
 import React, { useState } from 'react';
 import '../../styles/AuthPage.css';
-import { useAppState, User } from '../../hooks/useAppState';
-import { useNavigate } from 'react-router-dom';
+import { useAppState, UserRole } from '../../hooks/useAppState';
+import { useNavigate, useLocation } from 'react-router-dom';
+import { login, register } from '../../services/api';
+
+interface LocationState {
+  from?: { pathname: string };
+}
 
 function AuthPage() {
   const [activeTab, setActiveTab] = useState<'signin' | 'signup'>('signin');
@@ -12,77 +17,113 @@ function AuthPage() {
   const [lastName, setLastName] = useState('');
   const [phone, setPhone] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
+  const [error, setError] = useState('');
+  const [loading, setLoading] = useState(false);
 
   const { setUser } = useAppState();
   const navigate = useNavigate();
+  const location = useLocation();
+  const state = location.state as LocationState;
+  const from = state?.from?.pathname || '/';
 
-  const handleSignIn = (e: React.FormEvent) => {
+  // ──────────────────────────────────────────────────────
+  // HANDLE LOGIN
+  // ──────────────────────────────────────────────────────
+  const handleSignIn = async (e: React.FormEvent) => {
     e.preventDefault();
+    setError('');
+    setLoading(true);
 
-    console.log('[DEBUG AuthPage] Login attempt:', { email, password });
+    try {
+      const data = await login(email, password);
+      const { token, user: apiUser } = data;
 
-    if (email === 'admin@foodie.com' && password === 'admin123') {
-      const adminUser: User = {
-        id: 'admin-1',
-        email: 'admin@foodie.com',
-        name: 'Admin User',
-        role: 'admin',
+      const fullUser = {
+        id: apiUser.user_id.toString(),
+        email: apiUser.email,
+        name: apiUser.full_name,
+        role: apiUser.role as UserRole,
+        token,
       };
-      console.log('[DEBUG AuthPage] Setting admin user:', adminUser);
-      setUser(adminUser);
-      alert('Welcome, Admin!');
-      navigate('/admin'); // Now safe - shared state
-      return;
-    }
 
-    if (email && password) {
-      const user: User = {
-        id: 'user-1',
-        email,
-        name: firstName || 'User',
-        role: 'customer',
-      };
-      console.log('[DEBUG AuthPage] Setting customer user:', user);
-      setUser(user);
-      alert('Signed in as customer!');
-      navigate('/');
-      return;
-    }
+      localStorage.setItem('user', JSON.stringify(fullUser));
+      setUser(fullUser);
 
-    alert('Invalid credentials. Use admin@foodie.com / admin123 for admin.');
+      // Redirect based on role
+      const redirectTo =
+        fullUser.role === 'admin'
+          ? '/admin'
+          : fullUser.role === 'owner'
+          ? '/owner' // future
+          : from;
+
+      navigate(redirectTo, { replace: true });
+    } catch (err: any) {
+      setError(err.response?.data?.error || 'Đăng nhập thất bại. Vui lòng thử lại.');
+    } finally {
+      setLoading(false);
+    }
   };
 
-  const handleSignUp = (e: React.FormEvent) => {
+  // ──────────────────────────────────────────────────────
+  // HANDLE REGISTER
+  // ──────────────────────────────────────────────────────
+  const handleSignUp = async (e: React.FormEvent) => {
     e.preventDefault();
+    setError('');
+    setLoading(true);
+
     if (password !== confirmPassword) {
-      alert('Passwords do not match!');
+      setError('Mật khẩu xác nhận không khớp.');
+      setLoading(false);
       return;
     }
 
-    const user: User = {
-      id: Date.now().toString(),
-      email,
-      name: `${firstName} ${lastName}`.trim(),
-      role: 'customer',
-    };
-    console.log('[DEBUG AuthPage] Setting new user:', user);
-    setUser(user);
-    alert('Account created! Welcome!');
-    navigate('/');
+    try {
+      const fullName = `${firstName} ${lastName}`.trim();
+      await register(fullName, email, password);
+
+      // Auto-login after register
+      const loginData = await login(email, password);
+      const { token, user: apiUser } = loginData;
+
+      const fullUser = {
+        id: apiUser.user_id.toString(),
+        email: apiUser.email,
+        name: apiUser.full_name,
+        role: apiUser.role as UserRole,
+        token,
+      };
+
+      localStorage.setItem('user', JSON.stringify(fullUser));
+      setUser(fullUser);
+
+      navigate('/', { replace: true });
+    } catch (err: any) {
+      setError(err.response?.data?.error || 'Đăng ký thất bại. Vui lòng thử lại.');
+    } finally {
+      setLoading(false);
+    }
   };
 
+  // ──────────────────────────────────────────────────────
+  // RENDER
+  // ──────────────────────────────────────────────────────
   return (
     <div className="auth-page">
       <div className="auth-container">
         <h2>Welcome to FoodieExpress</h2>
+
         <div className="tabs">
           <button
+            type="button"
             className={activeTab === 'signin' ? 'active' : ''}
             onClick={() => setActiveTab('signin')}
           >
             Sign In
           </button>
           <button
+            type="button"
             className={activeTab === 'signup' ? 'active' : ''}
             onClick={() => setActiveTab('signup')}
           >
@@ -90,6 +131,9 @@ function AuthPage() {
           </button>
         </div>
 
+        {error && <p className="error-text">{error}</p>}
+
+        {/* SIGN IN */}
         {activeTab === 'signin' && (
           <form onSubmit={handleSignIn}>
             <input
@@ -98,6 +142,7 @@ function AuthPage() {
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               required
+              disabled={loading}
             />
             <input
               type="password"
@@ -105,24 +150,23 @@ function AuthPage() {
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               required
+              disabled={loading}
             />
-            <button type="submit" className="auth-btn">
-              Sign In
-            </button>
-            <div className="divider">or</div>
-            <button type="button" className="social-btn">
-              Sign in with Google
-            </button>
-            <button type="button" className="social-btn">
-              Sign in with Facebook
-            </button>
-            <button type="button" className="guest-btn">
-              Continue as Guest
+            <button type="submit" className="auth-btn" disabled={loading}>
+              {loading ? 'Signing In...' : 'Sign In'}
             </button>
 
+            <div className="divider">or</div>
+            <button type="button" className="social-btn" disabled>
+              Sign in with Google
+            </button>
+            <button type="button" className="social-btn" disabled>
+              Sign in with Facebook
+            </button>
           </form>
         )}
 
+        {/* SIGN UP */}
         {activeTab === 'signup' && (
           <form onSubmit={handleSignUp}>
             <div className="name-fields">
@@ -132,6 +176,7 @@ function AuthPage() {
                 value={firstName}
                 onChange={(e) => setFirstName(e.target.value)}
                 required
+                disabled={loading}
               />
               <input
                 type="text"
@@ -139,14 +184,17 @@ function AuthPage() {
                 value={lastName}
                 onChange={(e) => setLastName(e.target.value)}
                 required
+                disabled={loading}
               />
             </div>
+
             <input
               type="email"
               placeholder="Email"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               required
+              disabled={loading}
             />
             <input
               type="tel"
@@ -154,6 +202,7 @@ function AuthPage() {
               value={phone}
               onChange={(e) => setPhone(e.target.value)}
               required
+              disabled={loading}
             />
             <input
               type="password"
@@ -161,6 +210,7 @@ function AuthPage() {
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               required
+              disabled={loading}
             />
             <input
               type="password"
@@ -168,9 +218,10 @@ function AuthPage() {
               value={confirmPassword}
               onChange={(e) => setConfirmPassword(e.target.value)}
               required
+              disabled={loading}
             />
-            <button type="submit" className="auth-btn">
-              Create Account
+            <button type="submit" className="auth-btn" disabled={loading}>
+              {loading ? 'Creating Account...' : 'Create Account'}
             </button>
           </form>
         )}

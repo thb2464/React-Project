@@ -78,20 +78,30 @@
   position: absolute;
   top: 100%;
   right: 0;
-  background-color: #fff;
-  box-shadow: 0 2px 10px rgba(0,0,0,0.1);
-  border-radius: 4px;
-  padding: 10px;
-  min-width: 150px;
+  background: white;
+  border: 1px solid #ddd;
+  border-radius: 8px;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+  min-width: 180px;
+  z-index: 1000;
+  padding: 8px 0;
 }
 
-.account-dropdown div {
-  padding: 10px;
+.account-dropdown > div {
+  padding: 10px 16px;
   cursor: pointer;
+  font-size: 0.95rem;
 }
 
-.account-dropdown div:hover {
-  background-color: #f0f0f0;
+.account-dropdown > div:hover {
+  background: #f8f9fa;
+}
+
+.logout-btn {
+  color: #e74c3c !important;
+  border-top: 1px solid #eee;
+  margin-top: 8px;
+  padding-top: 12px;
 }
 
 .favorites {
