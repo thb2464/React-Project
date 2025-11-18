@@ -1,21 +1,17 @@
+// packages/server/routes/foodItems.js
 const express = require('express');
-const router = express.Router();
 const db = require('../db');
+const router = express.Router();
 
-/**
- * @route   GET /api/food-items
- * @desc    Lấy TẤT CẢ món ăn từ tất cả nhà hàng
- * @access  Public
- */
+// Lấy toàn bộ menu (chung cho mọi nhà hàng)
 router.get('/', async (req, res) => {
-    try {
-        // Câu lệnh SELECT * đơn giản không có điều kiện WHERE
-        const { rows } = await db.query('SELECT * FROM food_items WHERE is_available = TRUE');
-        res.status(200).json(rows);
-    } catch (error) {
-        console.error('Lỗi khi truy vấn tất cả food items:', error);
-        res.status(500).json({ error: 'Internal Server Error' });
-    }
+  try {
+    const { rows } = await db.query('SELECT * FROM food_items WHERE is_available = TRUE ORDER BY category, name');
+    res.json(rows);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'Lỗi server' });
+  }
 });
 
 module.exports = router;

@@ -1,0 +1,91 @@
+/* apps/web/src/styles/PaymentSuccessPage.css */
+.payment-status-container {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 70vh;
+  padding: 2rem;
+  background-color: #f9f9f9;
+}
+
+.payment-status-box {
+  background-color: #ffffff;
+  border-radius: 12px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+  padding: 2.5rem 3rem;
+  text-align: center;
+  max-width: 500px;
+  width: 100%;
+}
+
+.status-icon {
+  font-size: 4rem;
+  margin-bottom: 1rem;
+}
+.status-icon.success {
+  color: #28a745;
+}
+.status-icon.failed {
+  color: #dc3545;
+}
+
+.payment-status-box h1 {
+  font-size: 2rem;
+  margin-bottom: 0.5rem;
+  color: #333;
+}
+
+.status-message {
+  font-size: 1.1rem;
+  color: #555;
+  margin-bottom: 2rem;
+}
+
+.status-actions {
+  display: flex;
+  gap: 1rem;
+  justify-content: center;
+}
+
+.status-actions .btn {
+  padding: 0.75rem 1.5rem;
+  border-radius: 8px;
+  text-decoration: none;
+  font-weight: 600;
+  border: none;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.status-actions .btn-primary {
+  background-color: #e67e22;
+  color: white;
+}
+.status-actions .btn-primary:hover {
+  background-color: #d35400;
+}
+
+.status-actions .btn-secondary {
+  background-color: #f0f0f0;
+  color: #333;
+  border: 1px solid #ddd;
+}
+.status-actions .btn-secondary:hover {
+  background-color: #e0e0e0;
+}
+
+/* Spinner CSS */
+.spinner {
+  width: 50px;
+  height: 50px;
+  border: 5px solid #f3f3f3;
+  border-top: 5px solid #e67e22;
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+  margin: 0 auto 1.5rem auto;
+}
+
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}

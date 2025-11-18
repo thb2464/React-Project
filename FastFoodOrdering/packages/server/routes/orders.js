@@ -69,6 +69,36 @@ router.post('/', authenticateToken, async (req, res) => {
     }
 });
 
+router.post('/create-cod', authenticateToken, async (req, res) => {
+  const { user_id, restaurant_id, total_amount, delivery_address, delivery_lat, delivery_lng, note, items } = req.body;
+
+  try {
+    const orderRes = await pool.query(
+      `INSERT INTO orders (user_id, restaurant_id, total, delivery_address, delivery_lat, delivery_lng, note, status)
+       VALUES ($1,$2,$3,$4,$5,$6,$7,'pending') RETURNING order_id`,
+      [user_id, restaurant_id, total_amount, delivery_address, delivery_lat, delivery_lng, note]
+    );
+    const orderId = orderRes.rows[0].order_id;
+
+    for (const item of items) {
+      await pool.query(
+        `INSERT INTO order_items (order_id, item_id, quantity, unit_price, customizations, note)
+         VALUES ($1,$2,$3,$4,$5,$6)`,
+        [orderId, item.item_id, item.quantity, item.unit_price, item.customizations || [], item.note || '']
+      );
+    }
+
+    await pool.query(
+      `INSERT INTO payments (order_id, method, status, amount) VALUES ($1,'COD','pending',$2)`,
+      [orderId, total_amount]
+    );
+
+    res.json({ success: true, order_id: orderId });
+  } catch (err) {
+    res.status(500).json({ success: false });
+  }
+});
+
 // API: Lấy lịch sử đơn hàng của người dùng đang đăng nhập
 router.get('/history', authenticateToken, async (req, res) => {
     try {

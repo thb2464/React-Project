@@ -4,6 +4,10 @@ import path from "path";
 
 export default defineConfig({
   plugins: [react()],
+  server: {
+    port: 5173,
+    open: true,
+  },
   resolve: {
     alias: {
       ui: path.resolve(__dirname, "../../packages/ui"),

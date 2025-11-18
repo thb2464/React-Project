@@ -1,193 +1,145 @@
-// apps/web/src/components/pages/RestaurantDashboard.tsx
+// apps/web/src/components/pages/AdminDashboard.tsx
 import React, { useEffect, useState } from 'react';
 import '../../styles/RestaurantDashboard.css';
 import { useAppState } from '../../hooks/useAppState';
+import api from '../../services/api'; // ← THÊM DÒNG NÀY!
 
-interface StatCard {
-  title: string;
-  value: string | number;
-  change?: string;
-  sub?: string;
-  icon: string;
-  color: string;
-}
-
-interface Order {
-  id: string;
-  customer: string;
-  status: 'preparing' | 'in-transit' | 'delivered' | 'pending';
-  amount: number;
-}
-
-interface Drone {
-  id: string;
-  location: string;
-  battery: number;
-}
-
-export default function RestaurantDashboard() {
+export default function AdminDashboard() {
   const { user } = useAppState();
+  const [stats, setStats] = useState<any[]>([]);
+  const [recentOrders, setRecentOrders] = useState<any[]>([]);
+  const [activeDrones, setActiveDrones] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
 
-  // Mock / API data
-  const [stats, setStats] = useState<StatCard[]>([]);
-  const [recentOrders, setRecentOrders] = useState<Order[]>([]);
-  const [activeDrones, setActiveDrones] = useState<Drone[]>([]);
-
-  // Simulate API calls (replace with real endpoints later)
   useEffect(() => {
-    // Stats
-    setStats([
-      {
-        title: 'Order Volume',
-        value: 5,
-        change: '+12.5% this month',
-        sub: 'Completed: 1 | Pending: 2',
-        icon: '📦',
-        color: '#4f46e5',
-      },
-      {
-        title: 'Total Revenue',
-        value: '$175.28',
-        change: '+8.2% this month',
-        sub: 'Avg order value: $35.06',
-        icon: '💰',
-        color: '#10b981',
-      },
-      {
-        title: 'Drone Status',
-        value: '3 / 5 Active',
-        change: '',
-        sub: '60% operational',
-        icon: '🚁',
-        color: '#8b5cf6',
-      },
-      {
-        title: 'Delivery Performance',
-        value: '28 min avg',
-        change: '-3 min improvement',
-        sub: 'On-time rate: 94.2%',
-        icon: '⏱️',
-        color: '#f97316',
-      },
-    ]);
+  const fetchData = async () => {
+    try {
+      setLoading(true);
 
-    // Recent Orders
-    setRecentOrders([
-      { id: 'ORD-1001', customer: 'John Doe', status: 'in-transit', amount: 45.99 },
-      { id: 'ORD-1002', customer: 'Jane Smith', status: 'delivered', amount: 32.5 },
-      { id: 'ORD-1003', customer: 'Mike Johnson', status: 'in-transit', amount: 67.8 },
-      { id: 'ORD-1004', customer: 'Sarah Wilson', status: 'pending', amount: 28.99 },
-      { id: 'ORD-1005', customer: 'Tom Brown', status: 'preparing', amount: 41.25 },
-    ]);
+      // ĐÚNG CÁCH LẤY TOKEN – GIỐNG HỆT api.ts CỦA BẠN!
+      const userData = JSON.parse(localStorage.getItem('user') || 'null');
+      if (!userData?.token) {
+        console.error('Không có token, chuyển về login');
+        window.location.href = '/auth';
+        return;
+      }
 
-    // Active Drones
-    setActiveDrones([
-      { id: 'Falcon-01', location: 'Downtown Hub', battery: 85 },
-      { id: 'Eagle-02', location: 'Midtown Station', battery: 45 },
-      { id: 'Hawk-03', location: 'Uptown Base', battery: 92 },
-    ]);
+      // DÙNG AXIOS ĐÃ CÓ INTERCEPTOR → TỰ ĐỘNG GỬI TOKEN!
+      const ordersRes = await api.get('/admin/all-orders');
+      const allOrders = ordersRes.data;
 
-    // Real API (uncomment when backend ready)
-    /*
-    axios.get('/api/admin/stats').then(r => setStats(r.data));
-    axios.get('/api/admin/recent-orders').then(r => setRecentOrders(r.data));
-    axios.get('/api/admin/active-drones').then(r => setActiveDrones(r.data));
-    */
-  }, []);
+      const restRes = await api.get('/restaurants');
+      const restaurants = restRes.data;
 
-  const getStatusBadge = (status: Order['status']) => {
-    const map = {
-      preparing: { text: 'Preparing', color: '#fb923c' },
-      'in-transit': { text: 'In Transit', color: '#3b82f6' },
-      delivered: { text: 'Delivered', color: '#10b981' },
-      pending: { text: 'Pending', color: '#f59e0b' },
+      const dronePromises = restaurants.map((r: any) =>
+        api.get(`/restaurants/${r.restaurant_id}/drones`).then(res => res.data).catch(() => [])
+      );
+      const droneData = await Promise.all(dronePromises);
+      const drones = droneData.flat();
+
+      // Tính stats
+      const delivered = allOrders.filter((o: any) => o.status === 'delivered');
+      const totalRevenue = delivered.reduce((sum: number, o: any) => sum + Number(o.total || 0), 0);
+
+      setStats([
+        { title: 'Order Volume', value: allOrders.length, sub: `Đã giao: ${delivered.length}`, icon: '📦', color: '#4f46e5' },
+        { title: 'Total Revenue', value: `₫${totalRevenue.toLocaleString()}`, sub: delivered.length > 0 ? `TB: ₫${Math.round(totalRevenue / delivered.length).toLocaleString()}` : '', icon: '💵', color: '#10b981' },
+        { title: 'Drone Status', value: `${drones.length} / ${restaurants.length * 2 || 1} Active`, sub: `${Math.round((drones.length / (restaurants.length * 2 || 1)) * 100)}% sẵn sàng`, icon: '🚁', color: '#8b5cf6' },
+        { title: 'Delivery Performance', value: '28 min avg', sub: 'Đúng giờ: 94.2%', icon: '🕒', color: '#f97316' },
+      ]);
+
+      setRecentOrders(allOrders.slice(0, 5));
+      setActiveDrones(drones.map((d: any) => ({
+        ...d,
+        restaurant_name: restaurants.find((r: any) => r.restaurant_id === d.restaurant_id)?.name || 'Unknown'
+      })));
+
+      setLoading(false);
+    } catch (err: any) {
+      console.error('Lỗi tải dashboard:', err.response?.data || err.message);
+      setLoading(false);
+    }
+  };
+
+  fetchData();
+}, []);
+
+  const getStatusBadge = (status: string) => {
+    const map: any = {
+      pending: { text: 'Chờ xác nhận', color: '#f59e0b' },
+      confirmed: { text: 'Đã xác nhận', color: '#3b82f6' },
+      preparing: { text: 'Đang chuẩn bị', color: '#fb923c' },
+      out_for_delivery: { text: 'Đang giao', color: '#8b5cf6' },
+      delivered: { text: 'Đã giao', color: '#10b981' },
+      cancelled: { text: 'Đã hủy', color: '#ef4444' },
     };
-    const s = map[status];
+    const s = map[status] || { text: status, color: '#666' };
     return <span className="status-badge" style={{ backgroundColor: s.color }}>{s.text}</span>;
   };
 
+  if (loading) return <div style={{ padding: '50px', textAlign: 'center', fontSize: '18px' }}>Đang tải dữ liệu Admin...</div>;
+
   return (
     <>
-      {/* Header */}
       <header className="top-bar">
-        <div className="welcome">Welcome back, {user?.name || 'Admin'}</div>
+        <div className="welcome">Chào mừng quay lại, {user?.full_name || 'Admin'}</div>
         <div className="top-right">
-          <input type="text" placeholder="Search..." className="search-input" />
-          <button className="notification">
-            <span>Notifications</span>
-          </button>
           <div className="user-menu">
-            <span>{user?.name || 'Admin User'}</span>
+            <span>{user?.full_name || 'Admin'}</span>
             <span className="super-admin">Super Admin</span>
           </div>
         </div>
       </header>
 
-      {/* Overview Header */}
       <section className="overview-header">
-        <h1>Overview Dashboard</h1>
-        <p>Monitor order volume, drone status, revenue, and delivery performance in real-time</p>
-        <button className="export-btn">
-          Export Report
-        </button>
+        <h1>FoodieExpress Admin Dashboard</h1>
+        <p>Theo dõi toàn hệ thống giao đồ ăn bằng drone – Việt Nam 2025</p>
       </section>
 
-      {/* Stat Cards */}
       <section className="stat-cards">
         {stats.map((s, i) => (
           <div key={i} className="stat-card">
-            <div className="stat-icon" style={{ backgroundColor: s.color }}>
-              {s.icon}
-            </div>
+            <div className="stat-icon" style={{ backgroundColor: s.color }}>{s.icon}</div>
             <div className="stat-info">
               <h3>{s.title}</h3>
               <div className="stat-value">{s.value}</div>
-              {s.change && <div className="stat-change">{s.change}</div>}
               {s.sub && <div className="stat-sub">{s.sub}</div>}
+              {s.change && <div className="stat-change">{s.change}</div>}
             </div>
           </div>
         ))}
       </section>
 
-      {/* Recent Orders & Active Drones */}
       <section className="bottom-panels">
-        {/* Recent Orders */}
         <div className="panel recent-orders">
-          <h2>Recent Orders</h2>
+          <h2>Đơn hàng gần đây</h2>
           <div className="order-list">
             {recentOrders.map(o => (
-              <div key={o.id} className="order-row">
+              <div key={o.order_id} className="order-row">
                 <div>
-                  <strong>{o.id}</strong>
-                  <div className="customer">{o.customer}</div>
+                  <strong>ORD-{String(o.order_id).padStart(4, '0')}</strong>
+                  <div className="customer">{o.full_name}</div>
                 </div>
                 <div className="order-right">
                   {getStatusBadge(o.status)}
-                  <span className="amount">${o.amount.toFixed(2)}</span>
+                  <span className="amount">₫{Number(o.total).toLocaleString()}</span>
                 </div>
               </div>
             ))}
           </div>
         </div>
 
-        {/* Active Drones */}
         <div className="panel active-drones">
-          <h2>Active Drones</h2>
+          <h2>Drone sẵn sàng</h2>
           <div className="drone-list">
             {activeDrones.map(d => (
-              <div key={d.id} className="drone-row">
+              <div key={d.drone_id} className="drone-row">
                 <div>
-                  <strong>{d.id}</strong>
-                  <div className="location">{d.location}</div>
+                  <strong>{d.name || `Drone ${d.drone_id}`}</strong>
+                  <div className="location">{d.restaurant_name}</div>
                 </div>
                 <div className="battery">
-                  <div
-                    className="battery-bar"
-                    style={{ 
-                      width: `${d.battery}%`, 
-                      backgroundColor: d.battery > 70 ? '#10b981' : d.battery > 40 ? '#f59e0b' : '#ef4444' 
-                    }}
-                  />
+                  <div className="battery-bar" style={{ width: `${d.battery}%`, backgroundColor: d.battery > 70 ? '#10b981' : d.battery > 40 ? '#f59e0b' : '#ef4444' }} />
                   <span>{d.battery}%</span>
                 </div>
               </div>

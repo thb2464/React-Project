@@ -1,126 +1,251 @@
 // apps/web/src/components/pages/MenuPage.tsx
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import '../../styles/MenuPage.css';
-import { fetchAllFoodItems } from '../../services/api';
-import { MenuItemType } from '../../types';
+import { getFoodMenu } from '../../services/api';
 import MenuItemCard from '../shared/MenuItemCard';
 
-// KHÔI PHỤC LẠI: Dữ liệu tĩnh cho bộ lọc, vì chúng không đến từ API
-const dietaryPreferences: string[] = ['Vegetarian', 'Vegan', 'Gluten-Free', 'Dairy-Free'];
+interface MenuItemType {
+  id: number;
+  name: string;
+  image: string;
+  discountedPrice: number;
+  originalPrice: number;
+  description: string;
+  tags: string[];
+  rating: number;
+  time: string;
+  calories: number;
+  isPopular: boolean;
+  veg: boolean;
+  options?: any[];
+}
 
 function MenuPage() {
   const [allItems, setAllItems] = useState<MenuItemType[]>([]);
-  const [filteredItems, setFilteredItems] = useState<MenuItemType[]>([]);
-  const [categories, setCategories] = useState<string[]>([]);
+  const [categories, setCategories] = useState<string[]>(['All Items']);
   const [selectedCategory, setSelectedCategory] = useState('All Items');
-  const [loading, setLoading] = useState(true);
+
+  // FILTER STATES
+  const [isVegOnly, setIsVegOnly] = useState(false);
+  const [isDiscountOnly, setIsDiscountOnly] = useState(false);
+
+  // SORT STATE
+  const [sortBy, setSortBy] = useState<'popular' | 'price-asc' | 'price-desc' | 'rating'>('popular');
+
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 6;
+  const [loading, setLoading] = useState(true);
+
+  const mapDbToMenuItem = (dbItem: any): MenuItemType => ({
+    id: dbItem.item_id,
+    name: dbItem.name,
+    image: dbItem.image || 'https://placehold.co/600x400/e67e22/white?text=No+Image',
+    discountedPrice: dbItem.price,
+    originalPrice: dbItem.original_price || dbItem.price, // nếu có cột giảm giá thật thì dùng
+    description: dbItem.description || 'Món ngon khó cưỡng',
+    tags: dbItem.category ? [dbItem.category] : ['Khác'],
+    rating: dbItem.rating || 4.3 + Math.random() * 0.7,
+    time: '20-35 phút',
+    calories: Math.floor(Math.random() * 350) + 200,
+    isPopular: dbItem.is_popular || Math.random() > 0.5,
+    veg: dbItem.is_veg || false,
+    options: dbItem.options || [],
+  });
 
   useEffect(() => {
-    const loadAllItems = async () => {
+    const loadMenu = async () => {
       setLoading(true);
-      const data = await fetchAllFoodItems();
-      
-      setAllItems(data);
-      setFilteredItems(data);
+      try {
+        const dbItems = await getFoodMenu();
+        const mapped = dbItems.map(mapDbToMenuItem);
 
-      const uniqueCategories = [...new Set(data.flatMap(item => item.tags))];
-      setCategories(uniqueCategories);
+        setAllItems(mapped);
 
-      setLoading(false);
+        const uniqueCats = [...new Set(mapped.map(i => i.tags[0]))]
+          .filter(Boolean)
+          .sort();
+        setCategories(['All Items', ...uniqueCats]);
+      } catch (err) {
+        console.error('Lỗi tải menu:', err);
+        alert('Không thể tải thực đơn!');
+      } finally {
+        setLoading(false);
+      }
     };
-
-    loadAllItems();
+    loadMenu();
   }, []);
 
-  const handleCategoryChange = (catName: string) => {
-    setSelectedCategory(catName);
-    setCurrentPage(1); 
+  // === ÁP DỤNG FILTER + SORT ===
+  const filteredAndSortedItems = useMemo(() => {
+    let result = [...allItems];
 
-    if (catName === 'All Items') {
-      setFilteredItems(allItems);
-    } else {
-      const itemsInCategory = allItems.filter(item => item.tags.includes(catName));
-      setFilteredItems(itemsInCategory);
+    // 1. Filter theo danh mục
+    if (selectedCategory !== 'All Items') {
+      result = result.filter(item => item.tags.includes(selectedCategory));
     }
+
+    // 2. Filter món chay
+    if (isVegOnly) {
+      result = result.filter(item => item.veg);
+    }
+
+    // 3. Filter đang giảm giá (giả lập: nếu originalPrice > discountedPrice)
+    if (isDiscountOnly) {
+      result = result.filter(item => item.originalPrice > item.discountedPrice);
+    }
+
+    // 4. Sort
+    result.sort((a, b) => {
+      switch (sortBy) {
+        case 'popular':
+          return (b.isPopular ? 1 : 0) - (a.isPopular ? 1 : 0) || b.rating - a.rating;
+        case 'price-asc':
+          return a.discountedPrice - b.discountedPrice;
+        case 'price-desc':
+          return b.discountedPrice - a.discountedPrice;
+        case 'rating':
+          return b.rating - a.rating;
+        default:
+          return 0;
+      }
+    });
+
+    return result;
+  }, [allItems, selectedCategory, isVegOnly, isDiscountOnly, sortBy]);
+
+  // Pagination
+  const totalItems = filteredAndSortedItems.length;
+  const totalPages = Math.ceil(totalItems / itemsPerPage);
+  const currentItems = filteredAndSortedItems.slice(
+    (currentPage - 1) * itemsPerPage,
+    currentPage * itemsPerPage
+  );
+
+  const handleCategoryChange = (cat: string) => {
+    setSelectedCategory(cat);
+    setCurrentPage(1);
   };
 
-  const indexOfLastItem = currentPage * itemsPerPage;
-  const indexOfFirstItem = indexOfLastItem - itemsPerPage;
-  const currentItems = filteredItems.slice(indexOfFirstItem, indexOfLastItem);
-  const totalPages = Math.ceil(filteredItems.length / itemsPerPage);
+  const handleSortChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
+    setSortBy(e.target.value as any);
+    setCurrentPage(1);
+  };
 
-  const paginate = (pageNumber: number) => {
-    if (pageNumber > 0 && pageNumber <= totalPages) {
-        setCurrentPage(pageNumber);
+  const paginate = (page: number) => {
+    if (page >= 1 && page <= totalPages) {
+      setCurrentPage(page);
+      window.scrollTo({ top: 450, behavior: 'smooth' });
     }
   };
 
   return (
     <div className="menu-page">
       <aside className="menu-sidebar">
-        <h3>Categories</h3>
+        <h3>Danh mục món ăn</h3>
         <ul className="menu-category-list">
-          <li className={selectedCategory === 'All Items' ? 'active' : ''} onClick={() => handleCategoryChange('All Items')}>All Items</li>
-          {categories.map((cat) => (
-            <li key={cat} className={selectedCategory === cat ? 'active' : ''} onClick={() => handleCategoryChange(cat)}>{cat}</li>
-          ))}
+          {categories.map((cat) => {
+            const count = cat === 'All Items'
+              ? allItems.length
+              : allItems.filter(i => i.tags.includes(cat)).length;
+
+            return (
+              <li
+                key={cat}
+                className={selectedCategory === cat ? 'active' : ''}
+                onClick={() => handleCategoryChange(cat)}
+              >
+                {cat === 'All Items' ? 'Tất cả món' : cat}
+                <span className="count">({count})</span>
+              </li>
+            );
+          })}
         </ul>
 
-        <h3>Dietary Preferences</h3>
-        <ul className="menu-dietary-list">
-          {dietaryPreferences.map((pref: string) => (
-            <li key={pref}>
-              <input type="checkbox" id={pref} />
-              <label htmlFor={pref}>{pref}</label>
-            </li>
-          ))}
-        </ul>
-
-        <h3>Price Range</h3>
-        <div className="menu-price-range">
-          <input type="range" min="0" max="50" step="1" defaultValue="50" />
-          <div className="price-labels">
-            <span>$0</span>
-            <span>$50+</span>
-          </div>
+        <div className="menu-filters">
+          <h3>Bộ lọc</h3>
+          <label>
+            <input
+              type="checkbox"
+              checked={isVegOnly}
+              onChange={(e) => {
+                setIsVegOnly(e.target.checked);
+                setCurrentPage(1);
+              }}
+            />
+            Món chay
+          </label>
+          <label>
+            <input
+              type="checkbox"
+              checked={isDiscountOnly}
+              onChange={(e) => {
+                setIsDiscountOnly(e.target.checked);
+                setCurrentPage(1);
+              }}
+            />
+            Đang giảm giá
+          </label>
         </div>
       </aside>
 
       <main className="main-content">
         {loading ? (
-          <h1>Loading menu...</h1>
+          <div className="loading-menu">
+            <div className="spinner"></div>
+            <p>Đang tải thực đơn...</p>
+          </div>
         ) : (
           <>
             <div className="header-sort">
-              <h1>{selectedCategory}</h1>
-              <div className="sort-by">
-                <select>
-                  <option>Popular</option>
-                </select>
-              </div>
+              <h1>
+                {selectedCategory === 'All Items' ? 'Tất cả món ăn' : selectedCategory}
+                <span className="item-count"> ({totalItems} món)</span>
+              </h1>
+
+              <select value={sortBy} onChange={handleSortChange}>
+                <option value="popular">Phổ biến nhất</option>
+                <option value="price-asc">Giá thấp → cao</option>
+                <option value="price-desc">Giá cao → thấp</option>
+                <option value="rating">Đánh giá cao nhất</option>
+              </select>
             </div>
 
             <div className="menu-grid">
-              {currentItems.length > 0 ? (
+              {currentItems.length === 0 ? (
+                <p>Không tìm thấy món nào phù hợp.</p>
+              ) : (
                 currentItems.map((item) => (
                   <MenuItemCard key={item.id} item={item} />
                 ))
-              ) : (
-                <p>No items found for this category.</p>
               )}
             </div>
 
-            <div className="pagination">
-              <button onClick={() => paginate(currentPage - 1)} disabled={currentPage === 1} className="page-btn">Previous</button>
-              {Array.from({ length: totalPages }, (_, i) => i + 1).map((page) => (
-                <button key={page} onClick={() => paginate(page)} className={`page-btn ${currentPage === page ? 'active' : ''}`}>
-                  {page}
+            {/* PAGINATION */}
+            {totalPages > 1 && (
+              <div className="pagination">
+                <button onClick={() => paginate(currentPage - 1)} disabled={currentPage === 1} className='page-btn'>
+                  Trước
                 </button>
-              ))}
-              <button onClick={() => paginate(currentPage + 1)} disabled={currentPage === totalPages} className="page-btn">Next</button>
-            </div>
+
+                {Array.from({ length: totalPages }, (_, i) => i + 1)
+                  .filter(p => p === 1 || p === totalPages || Math.abs(p - currentPage) <= 2)
+                  .map((page, idx, arr) => (
+                    <React.Fragment key={page}>
+                      {idx > 0 && arr[idx - 1] !== page - 1 && <span>...</span>}
+                      <button
+                        onClick={() => paginate(page)}
+                        className={currentPage === page ? 'active' : 'page-btn'}
+                      >
+                        {page}
+                      </button>
+                    </React.Fragment>
+                  ))}
+
+                <button onClick={() => paginate(currentPage + 1)} disabled={currentPage === totalPages} className='page-btn'>
+                  Sau
+                </button>
+              </div>
+            )}
           </>
         )}
       </main>
@@ -129,4 +254,3 @@ function MenuPage() {
 }
 
 export default MenuPage;
-

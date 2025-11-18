@@ -1,13 +1,13 @@
-// apps/web/src/components/pages/RestaurantsPage.tsx
+// apps/web/src/components/pages/AdminRestaurants.tsx
 import React, { useState, useEffect } from 'react';
-import '../../styles/AdminRestaurants.css'; // Updated CSS for exact match
+import '../../styles/AdminRestaurants.css';
 import { useAppState } from '../../hooks/useAppState';
+import api from '../../services/api';
 
 interface Restaurant {
-  id: string;
+  restaurant_id: string;
   name: string;
-  email: string;
-  phone: string;
+  phone: string; // Adjusted for DB (no email in restaurants table)
   address: string;
   description: string;
   rating: number;
@@ -15,94 +15,122 @@ interface Restaurant {
   visible: boolean;
 }
 
-export default function RestaurantsPage() {
+export default function AdminRestaurants() {
   const { user } = useAppState();
 
-  // Mock data (replace with API later)
-  const [restaurants, setRestaurants] = useState<Restaurant[]>([
-    {
-      id: 'rest1',
-      name: 'Burger Palace',
-      email: 'contact@burgerpalace.com',
-      phone: '(555) 123-4567',
-      address: '123 Main St, Downtown',
-      description: 'Best burgers in town',
-      rating: 4.5,
-      status: 'active',
-      visible: true,
-    },
-    {
-      id: 'rest2',
-      name: 'Pizza Paradise',
-      email: 'info@pizzaparadise.com',
-      phone: '(555) 234-5678',
-      address: '456 Oak Ave, Midtown',
-      description: 'Authentic Italian pizza',
-      rating: 4.8,
-      status: 'active',
-      visible: true,
-    },
-    {
-      id: 'rest3',
-      name: 'Sushi Master',
-      email: 'hello@sushimaster.com',
-      phone: '(555) 345-6789',
-      address: '789 Pine Rd, Uptown',
-      description: 'Fresh sushi daily',
-      rating: 4.7,
-      status: 'inactive',
-      visible: false,
-    },
-  ]);
-
-  // Modal state
+  const [restaurants, setRestaurants] = useState<Restaurant[]>([]);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [formData, setFormData] = useState({
     name: '',
-    email: '',
     phone: '',
     address: '',
     description: '',
   });
-
   const [searchTerm, setSearchTerm] = useState('');
 
-  // Filter restaurants
+  // Load real data from DB
+  useEffect(() => {
+    const fetchRestaurants = async () => {
+      try {
+        const res = await api.get('/restaurants'); // Using existing route, but for admin it shows all
+        const mapped = res.data.map((r: any) => ({
+          restaurant_id: r.restaurant_id.toString(),
+          name: r.name,
+          phone: r.phone || 'N/A',
+          address: r.address,
+          description: r.description || 'No description',
+          rating: 4.5, // Mock, DB doesn't have
+          status: r.is_open ? 'active' : 'inactive',
+          visible: r.is_open,
+        }));
+        setRestaurants(mapped);
+      } catch (err) {
+        console.error(err);
+      }
+    };
+    fetchRestaurants();
+  }, []);
+
+  // Filter
   const filteredRestaurants = restaurants.filter(r =>
     r.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    r.email.toLowerCase().includes(searchTerm.toLowerCase())
+    r.phone.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
-  const handleAddRestaurant = () => {
-    const newRest: Restaurant = {
-      id: `rest${restaurants.length + 1}`,
-      name: formData.name,
-      email: formData.email,
-      phone: formData.phone,
-      address: formData.address,
-      description: formData.description,
-      rating: 0,
-      status: 'active',
-      visible: true,
-    };
-    setRestaurants([...restaurants, newRest]);
-    setIsModalOpen(false);
-    setFormData({ name: '', email: '', phone: '', address: '', description: '' });
+  // Add new (real API if you add POST /restaurants)
+  const handleAddRestaurant = async () => {
+    try {
+      const res = await api.post('/restaurants', formData); // Assume you add this route
+      const newRest = {
+        restaurant_id: res.data.restaurant_id.toString(),
+        name: res.data.name,
+        phone: res.data.phone || 'N/A',
+        address: res.data.address,
+        description: res.data.description || 'No description',
+        rating: 4.5,
+        status: 'active',
+        visible: true,
+      };
+      setRestaurants([...restaurants, newRest]);
+      setIsModalOpen(false);
+      setFormData({ name: '', phone: '', address: '', description: '' });
+    } catch (err) {
+      console.error(err);
+      // Mock add if no API
+      const newId = (Math.max(...restaurants.map(r => Number(r.restaurant_id)), 0) + 1).toString();
+      const newRest = {
+        restaurant_id: newId,
+        name: formData.name,
+        phone: formData.phone,
+        address: formData.address,
+        description: formData.description,
+        rating: 4.5,
+        status: 'active',
+        visible: true,
+      };
+      setRestaurants([...restaurants, newRest]);
+      setIsModalOpen(false);
+      setFormData({ name: '', phone: '', address: '', description: '' });
+    }
   };
 
-  const toggleVisible = (id: string) => {
-    setRestaurants(restaurants.map(r => 
-      r.id === id ? { ...r, visible: !r.visible } : r
-    ));
+  // Toggle visible (update DB is_open)
+  const toggleVisible = async (id: string) => {
+    const restaurant = restaurants.find(r => r.restaurant_id === id);
+    if (!restaurant) return;
+
+    const newVisible = !restaurant.visible;
+
+    try {
+      await api.put(`/restaurants/${id}`, { is_open: newVisible }); // Assume you add this route
+      setRestaurants(restaurants.map(r =>
+        r.restaurant_id === id ? { ...r, visible: newVisible, status: newVisible ? 'active' : 'inactive' } : r
+      ));
+    } catch (err) {
+      console.error(err);
+      // Local update if no API
+      setRestaurants(restaurants.map(r =>
+        r.restaurant_id === id ? { ...r, visible: newVisible, status: newVisible ? 'active' : 'inactive' } : r
+      ));
+    }
   };
 
-  const deleteRestaurant = (id: string) => {
-    setRestaurants(restaurants.filter(r => r.id !== id));
+  // Delete (update DB)
+  const deleteRestaurant = async (id: string) => {
+    if (!confirm('Xác nhận xóa?')) return;
+
+    try {
+      await api.delete(`/restaurants/${id}`); // Assume you add this route
+      setRestaurants(restaurants.filter(r => r.restaurant_id !== id));
+    } catch (err) {
+      console.error(err);
+      // Local delete if no API
+      setRestaurants(restaurants.filter(r => r.restaurant_id !== id));
+    }
   };
 
   return (
     <>
-      {/* Page Header */}
       <header className="page-header">
         <div className="page-title">
           <h1>Restaurant & Partner Management</h1>
@@ -113,7 +141,6 @@ export default function RestaurantsPage() {
         </button>
       </header>
 
-      {/* Search & Filter */}
       <div className="table-controls">
         <div className="search-bar">
           <input
@@ -132,7 +159,6 @@ export default function RestaurantsPage() {
         </div>
       </div>
 
-      {/* Table */}
       <div className="table-container">
         <table className="restaurants-table">
           <thead>
@@ -149,17 +175,16 @@ export default function RestaurantsPage() {
           <tbody>
             {filteredRestaurants.length > 0 ? (
               filteredRestaurants.map((r) => (
-                <tr key={r.id}>
+                <tr key={r.restaurant_id}>
                   <td>
                     <div className="restaurant-info">
                       <strong>{r.name}</strong>
-                      <div className="id-text">ID: {r.id}</div>
+                      <div className="id-text">ID: {r.restaurant_id}</div>
                     </div>
                   </td>
                   <td>
                     <div className="contact-info">
-                      <div>{r.email}</div>
-                      <div className="phone">{r.phone}</div>
+                      <div>{r.phone}</div>
                     </div>
                   </td>
                   <td>{r.address}</td>
@@ -178,7 +203,7 @@ export default function RestaurantsPage() {
                       <input
                         type="checkbox"
                         checked={r.visible}
-                        onChange={() => toggleVisible(r.id)}
+                        onChange={() => toggleVisible(r.restaurant_id)}
                       />
                       <span className="slider"></span>
                     </label>
@@ -187,7 +212,7 @@ export default function RestaurantsPage() {
                     <button className="action-btn edit" title="Edit">
                       <span className="icon">✏️</span>
                     </button>
-                    <button className="action-btn delete" onClick={() => deleteRestaurant(r.id)} title="Delete">
+                    <button className="action-btn delete" onClick={() => deleteRestaurant(r.restaurant_id)} title="Delete">
                       <span className="icon">🗑️</span>
                     </button>
                   </td>
@@ -204,7 +229,6 @@ export default function RestaurantsPage() {
         </table>
       </div>
 
-      {/* Add Restaurant Modal */}
       {isModalOpen && (
         <div className="modal-overlay" onClick={() => setIsModalOpen(false)}>
           <div className="modal-content" onClick={(e) => e.stopPropagation()}>
@@ -221,15 +245,6 @@ export default function RestaurantsPage() {
                   placeholder="Enter restaurant name"
                   value={formData.name}
                   onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                />
-              </div>
-              <div className="form-group">
-                <label>Email</label>
-                <input
-                  type="email"
-                  placeholder="Enter email address"
-                  value={formData.email}
-                  onChange={(e) => setFormData({ ...formData, email: e.target.value })}
                 />
               </div>
               <div className="form-group">
@@ -264,7 +279,7 @@ export default function RestaurantsPage() {
               <button className="cancel-btn" onClick={() => setIsModalOpen(false)}>
                 Cancel
               </button>
-              <button className="add-rest-btn" onClick={handleAddRestaurant} disabled={!formData.name || !formData.email}>
+              <button className="add-rest-btn" onClick={handleAddRestaurant} disabled={!formData.name || !formData.address}>
                 Add Restaurant
               </button>
             </div>
