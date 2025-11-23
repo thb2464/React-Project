@@ -153,9 +153,6 @@
   margin-right: 8px;
 }
 
-.action-btn:hover {
-  background: #f3f4f6;
-}
 
 .action-btn .icon {
   font-size: 1rem;
@@ -165,13 +162,19 @@
   color: #ef4444;
 }
 
-.action-btn.toggle:hover {
-  background: #fee2e2;
+
+.action-btn.feedback {
+  background: #3498db;
+  color: white;
 }
 
-.action-btn.delete:hover {
-  background: #fee2e2;
-  color: #dc2626;
+.action-btn.feedback:hover {
+  background: #3498db;
+  color: white;
+}
+
+.action-btn.block {
+  color: white;
 }
 
 /* Modal */

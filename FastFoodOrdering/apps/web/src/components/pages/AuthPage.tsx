@@ -117,14 +117,14 @@ function AuthPage() {
         <div className="tabs">
           <button
             type="button"
-            className={activeTab === 'signin' ? 'active' : ''}
+            className={activeTab === 'signin' ? 'sign-active' : ''}
             onClick={() => setActiveTab('signin')}
           >
             Sign In
           </button>
           <button
             type="button"
-            className={activeTab === 'signup' ? 'active' : ''}
+            className={activeTab === 'signup' ? 'sign-active' : ''}
             onClick={() => setActiveTab('signup')}
           >
             Sign Up

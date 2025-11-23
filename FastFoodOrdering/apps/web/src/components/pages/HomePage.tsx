@@ -16,6 +16,7 @@ interface MenuItemType {
   rating?: number;
   isPopular?: boolean;
   veg?: boolean;
+  calories?: number;
 }
 
 function HomePage() {
@@ -46,7 +47,8 @@ function HomePage() {
             originalPrice: Number(item.price),
             description: item.description || 'Món ăn ngon tuyệt đối',
             tags: item.category ? [item.category] : [],
-            rating: item.rating || 4.5 + Math.random() * 0.4,
+            rating: item.rating || Number((4.3 + Math.random() * 0.7).toFixed(1)),
+            calories: Math.floor(Math.random() * 350) + 200,
             isPopular: true,
             veg: item.is_veg || false,
           }));

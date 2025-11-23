@@ -1,0 +1,9 @@
+{
+  "name": "@fastfoodordering/store",
+  "dependencies": {
+    "@fastfoodordering/utils": "*", 
+    "@fastfoodordering/types": "*",
+    "zustand": "^4.5.0",
+    "@react-native-async-storage/async-storage": "^1.21.0"
+  }
+}
