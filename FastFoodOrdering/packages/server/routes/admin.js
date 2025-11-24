@@ -344,4 +344,128 @@ router.get('/users', authenticateToken, requireAdmin, async (req, res) => {
   }
 });
 
+// ==============================
+// 5. QUẢN LÝ CHI NHÁNH (RESTAURANTS) – DÀNH RIÊNG CHO ADMIN
+// ==============================
+
+// Lấy tất cả chi nhánh (kể cả đóng cửa)
+router.get('/restaurants', authenticateToken, requireAdmin, async (req, res) => {
+  try {
+    const { rows } = await db.query(`
+      SELECT restaurant_id, name, phone, address, lat, lng, radius_km, is_open, created_at
+      FROM restaurants
+      ORDER BY name
+    `);
+    res.json(rows);
+  } catch (err) {
+    console.error('Lỗi lấy danh sách chi nhánh:', err);
+    res.status(500).json({ error: 'Lỗi server' });
+  }
+});
+
+// Thêm chi nhánh mới
+router.post('/restaurants', authenticateToken, requireAdmin, async (req, res) => {
+  const { name, phone, address, lat, lng, radius_km = 8.0 } = req.body;
+
+  if (!name || !address || !lat || !lng) {
+    return res.status(400).json({ error: 'Thiếu thông tin bắt buộc' });
+  }
+
+  try {
+    const { rows } = await db.query(`
+      INSERT INTO restaurants (name, phone, address, lat, lng, radius_km)
+      VALUES ($1, $2, $3, $4, $5, $6)
+      RETURNING *
+    `, [name, phone || null, address, lat, lng, radius_km]);
+
+    res.status(201).json(rows[0]);
+  } catch (err) {
+    console.error('Lỗi thêm chi nhánh:', err);
+    res.status(500).json({ error: 'Không thể thêm chi nhánh' });
+  }
+});
+
+// Cập nhật thông tin chi nhánh (dành cho admin)
+router.put('/restaurants/:id', authenticateToken, requireAdmin, async (req, res) => {
+  const { id } = req.params;
+  const { name, phone, address, radius_km = 8.0 } = req.body;
+
+  if (!name || !address) {
+    return res.status(400).json({ error: 'Tên và địa chỉ là bắt buộc' });
+  }
+
+  try {
+    const { rows } = await db.query(`
+      UPDATE restaurants 
+      SET name = $1, phone = $2, address = $3, radius_km = $4
+      WHERE restaurant_id = $5
+      RETURNING *
+    `, [name, phone || null, address, radius_km, id]);
+
+    if (rows.length === 0) {
+      return res.status(404).json({ error: 'Không tìm thấy chi nhánh' });
+    }
+
+    res.json(rows[0]);
+  } catch (err) {
+    console.error('Lỗi cập nhật chi nhánh:', err);
+    res.status(500).json({ error: 'Lỗi server' });
+  }
+});
+
+// ==============================
+// 6. QUẢN LÝ THANH TOÁN (PAYMENTS) – DÀNH RIÊNG CHO ADMIN
+// ==============================
+
+// Lấy tất cả thanh toán + thông tin khách + nhà hàng
+router.get('/payments', authenticateToken, requireAdmin, async (req, res) => {
+  try {
+    const { rows } = await db.query(`
+      SELECT 
+        p.id,
+        p.order_id,
+        p.method,
+        p.status,
+        p.amount,
+        p.vnpay_txn,
+        p.paid_at,
+        p.created_at,
+        u.full_name,
+        COALESCE(r.name, 'Không rõ') AS restaurant_name
+      FROM payments p
+      JOIN orders o ON p.order_id = o.order_id
+      JOIN users u ON o.user_id = u.user_id
+      LEFT JOIN restaurants r ON o.restaurant_id = r.restaurant_id
+      ORDER BY p.created_at DESC
+    `);
+    res.json(rows);
+  } catch (err) {
+    console.error('Lỗi lấy danh sách thanh toán:', err);
+    res.status(500).json({ error: 'Lỗi server' });
+  }
+});
+
+// Xác nhận thanh toán đã nhận tiền từ nhà hàng (admin bấm nút Verify)
+router.patch('/payments/:id/verify', authenticateToken, requireAdmin, async (req, res) => {
+  const { id } = req.params;
+
+  try {
+    const { rows } = await db.query(`
+      UPDATE payments 
+      SET status = 'paid', paid_at = COALESCE(paid_at, NOW())
+      WHERE id = $1 AND status = 'pending'
+      RETURNING *
+    `, [id]);
+
+    if (rows.length === 0) {
+      return res.status(404).json({ error: 'Không tìm thấy hoặc đã xác nhận' });
+    }
+
+    res.json({ success: true, payment: rows[0] });
+  } catch (err) {
+    console.error('Lỗi xác nhận thanh toán:', err);
+    res.status(500).json({ error: 'Lỗi server' });
+  }
+});
+
 module.exports = router;

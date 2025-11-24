@@ -175,25 +175,126 @@ export default function AdminOrdersPage() {
       {isModalOpen && selectedOrder && (
         <div className="modal-overlay" onClick={() => setIsModalOpen(false)}>
           <div className="modal-content" onClick={e => e.stopPropagation()}>
-            <h2>Đơn #{selectedOrder.order_id}</h2>
-            <p>Khách: {selectedOrder.full_name}</p>
-            <p>Nhà hàng: {selectedOrder.restaurant_name}</p>
-            <p>Địa chỉ: {selectedOrder.delivery_address}</p>
-            <h4>Món ăn:</h4>
-            {selectedOrder.items.map((it, i) => (
-              <div key={i}>• {it.quantity}x {it.name}</div>
-            ))}
-            <div style={{marginTop: '20px'}}>
+            <div className="modal-header">
+              <div>
+                <h2>Đơn hàng #{selectedOrder.order_id}</h2>
+                <p className="order-time">
+                  {new Date(selectedOrder.created_at).toLocaleString('vi-VN', {
+                    weekday: 'long',
+                    day: '2-digit',
+                    month: '2-digit',
+                    year: 'numeric',
+                    hour: '2-digit',
+                    minute: '2-digit'
+                  })}
+                </p>
+              </div>
+              <div className={`status-badge big ${selectedOrder.status}`}>
+                {selectedOrder.status === 'pending' ? 'Chờ xác nhận' :
+                 selectedOrder.status === 'confirmed' ? 'Đã xác nhận' :
+                 selectedOrder.status === 'out_for_delivery' ? 'Đang giao' :
+                 selectedOrder.status === 'delivered' ? 'Đã giao thành công' : selectedOrder.status}
+              </div>
+            </div>
+
+            <div className="info-grid">
+              <div className="info-card">
+                
+                <div>
+                  <div className="info-label">Khách hàng</div>
+                  <div className="info-value">{selectedOrder.full_name}</div>
+                </div>
+              </div>
+              <div className="info-card">
+                
+                <div>
+                  <div className="info-label">Nhà hàng</div>
+                  <div className="info-value">{selectedOrder.restaurant_name}</div>
+                </div>
+              </div>
+              <div className="info-card">
+                
+                <div>
+                  <div className="info-label">Địa chỉ giao hàng</div>
+                  <div className="info-value">{selectedOrder.delivery_address}</div>
+                </div>
+              </div>
+              {selectedOrder.drone_name && (
+                <div className="info-card success">
+                  
+                  <div>
+                    <div className="info-label">Drone đang giao</div>
+                    <div className="info-value">{selectedOrder.drone_name}</div>
+                  </div>
+                </div>
+              )}
+            </div>
+
+            <div className="items-section">
+              <h3>Món đã đặt ({selectedOrder.items.length})</h3>
+              <div className="items-list">
+                {selectedOrder.items.map((item, i) => (
+                  <div className="item-row" key={i}>
+                    <div className="item-name">
+                      <span className="quantity">{item.quantity}×</span>
+                      {item.name}
+                    </div>
+                    <div className="item-price">
+                      {new Intl.NumberFormat('vi-VN').format(item.quantity * item.unit_price)}₫
+                    </div>
+                  </div>
+                ))}
+              </div>
+              <div className="total-row">
+                <strong>Tổng cộng</strong>
+                <strong className="total-amount">
+                  {new Intl.NumberFormat('vi-VN').format(selectedOrder.total)}₫
+                </strong>
+              </div>
+            </div>
+
+            {selectedOrder.note && (
+              <div className="note-section">
+                <div className="note-icon">Note</div>
+                <em>“{selectedOrder.note}”</em>
+              </div>
+            )}
+
+            <div className="modal-actions">
               {selectedOrder.status === 'pending' && (
-                <button onClick={confirmOrder} style={{background:'#3b82f6', color:'white', marginRight:'10px'}}>Xác nhận đơn</button>
+                <button className="btn-primary" onClick={confirmOrder}>
+                  Xác nhận đơn hàng
+                </button>
               )}
-              {selectedOrder.status === 'confirmed' && (
-                <select onChange={e => assignDrone(Number(e.target.value))} defaultValue="">
-                  <option value="" disabled>Chọn Drone</option>
-                  {availableDrones.map(d => <option key={d.drone_id} value={d.drone_id}>{d.name} ({d.battery}%)</option>)}
-                </select>
+
+              {selectedOrder.status === 'confirmed' && availableDrones.length > 0 && (
+                <div className="drone-select-wrapper">
+                  <select onChange={e => assignDrone(Number(e.target.value))} defaultValue="" className="drone-select">
+                    <option value="" disabled>Chọn Drone giao hàng</option>
+                    {availableDrones.map(d => (
+                      <option key={d.drone_id} value={d.drone_id}>
+                        {d.name} — Pin: {d.battery}%
+                      </option>
+                    ))}
+                  </select>
+                </div>
               )}
-              <button onClick={() => setIsModalOpen(false)}>Đóng</button>
+
+              {selectedOrder.status === 'out_for_delivery' && (
+                <div className="success-message">
+                  Drone đang trên đường giao hàng...
+                </div>
+              )}
+
+              {selectedOrder.status === 'delivered' && (
+                <div className="success-message">
+                  Đơn hàng đã được giao thành công!
+                </div>
+              )}
+
+              <button className="btn-secondary" onClick={() => setIsModalOpen(false)}>
+                Đóng
+              </button>
             </div>
           </div>
         </div>
