@@ -57,7 +57,7 @@ router.patch('/:id', authenticateToken, requireAdmin, async (req, res) => {
   try {
     const { rows } = await db.query(
       `UPDATE restaurants 
-       SET is_open = $1, updated_at = NOW() 
+       SET is_open = $1
        WHERE restaurant_id = $2 
        RETURNING *`,
       [is_open, id]

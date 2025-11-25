@@ -5,139 +5,135 @@ import { useAppState } from '../../hooks/useAppState';
 import api from '../../services/api';
 
 interface Restaurant {
-  restaurant_id: string;
+  restaurant_id: number;
   name: string;
-  phone: string; // Adjusted for DB (no email in restaurants table)
+  phone: string | null;
   address: string;
-  description: string;
-  rating: number;
-  status: 'active' | 'inactive';
-  visible: boolean;
+  radius_km: number;
+  is_open: boolean;
 }
 
 export default function AdminRestaurants() {
   const { user } = useAppState();
 
   const [restaurants, setRestaurants] = useState<Restaurant[]>([]);
+  const [loading, setLoading] = useState(true);
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [editingRestaurant, setEditingRestaurant] = useState<Restaurant | null>(null);
+
   const [formData, setFormData] = useState({
     name: '',
     phone: '',
     address: '',
-    description: '',
+    radius_km: '8.0',
   });
+
   const [searchTerm, setSearchTerm] = useState('');
 
-  // Load real data from DB
+  // Load tất cả chi nhánh
   useEffect(() => {
     const fetchRestaurants = async () => {
       try {
-        const res = await api.get('/restaurants'); // Using existing route, but for admin it shows all
-        const mapped = res.data.map((r: any) => ({
-          restaurant_id: r.restaurant_id.toString(),
-          name: r.name,
-          phone: r.phone || 'N/A',
-          address: r.address,
-          description: r.description || 'No description',
-          rating: 4.5, // Mock, DB doesn't have
-          status: r.is_open ? 'active' : 'inactive',
-          visible: r.is_open,
-        }));
-        setRestaurants(mapped);
+        setLoading(true);
+        const res = await api.get('/admin/restaurants');
+        setRestaurants(res.data);
       } catch (err) {
-        console.error(err);
+        console.error('Lỗi tải chi nhánh:', err);
+        alert('Không thể tải dữ liệu');
+      } finally {
+        setLoading(false);
       }
     };
     fetchRestaurants();
   }, []);
 
-  // Filter
   const filteredRestaurants = restaurants.filter(r =>
     r.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    r.phone.toLowerCase().includes(searchTerm.toLowerCase())
+    r.address.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    (r.phone && r.phone.includes(searchTerm))
   );
 
-  // Add new (real API if you add POST /restaurants)
-  const handleAddRestaurant = async () => {
-    try {
-      const res = await api.post('/restaurants', formData); // Assume you add this route
-      const newRest = {
-        restaurant_id: res.data.restaurant_id.toString(),
-        name: res.data.name,
-        phone: res.data.phone || 'N/A',
-        address: res.data.address,
-        description: res.data.description || 'No description',
-        rating: 4.5,
-        status: 'active',
-        visible: true,
-      };
-      setRestaurants([...restaurants, newRest]);
-      setIsModalOpen(false);
-      setFormData({ name: '', phone: '', address: '', description: '' });
-    } catch (err) {
-      console.error(err);
-      // Mock add if no API
-      const newId = (Math.max(...restaurants.map(r => Number(r.restaurant_id)), 0) + 1).toString();
-      const newRest = {
-        restaurant_id: newId,
-        name: formData.name,
-        phone: formData.phone,
-        address: formData.address,
-        description: formData.description,
-        rating: 4.5,
-        status: 'active',
-        visible: true,
-      };
-      setRestaurants([...restaurants, newRest]);
-      setIsModalOpen(false);
-      setFormData({ name: '', phone: '', address: '', description: '' });
-    }
+  // Mở modal thêm mới
+  const openAddModal = () => {
+    setEditingRestaurant(null);
+    setFormData({ name: '', phone: '', address: '', radius_km: '8.0' });
+    setIsModalOpen(true);
   };
 
-  // Toggle visible (update DB is_open)
-  const toggleVisible = async (id: string) => {
+  // Mở modal chỉnh sửa
+  const openEditModal = (restaurant: Restaurant) => {
+    setEditingRestaurant(restaurant);
+    setFormData({
+      name: restaurant.name,
+      phone: restaurant.phone || '',
+      address: restaurant.address,
+      radius_km: restaurant.radius_km.toString(),
+    });
+    setIsModalOpen(true);
+  };
+
+  // Bật/tắt hiển thị
+  const toggleVisible = async (id: number) => {
     const restaurant = restaurants.find(r => r.restaurant_id === id);
     if (!restaurant) return;
 
-    const newVisible = !restaurant.visible;
-
     try {
-      await api.put(`/restaurants/${id}`, { is_open: newVisible }); // Assume you add this route
-      setRestaurants(restaurants.map(r =>
-        r.restaurant_id === id ? { ...r, visible: newVisible, status: newVisible ? 'active' : 'inactive' } : r
-      ));
+      await api.patch(`/restaurants/${id}`, { is_open: !restaurant.is_open });
+      setRestaurants(prev =>
+        prev.map(r => r.restaurant_id === id ? { ...r, is_open: !r.is_open } : r)
+      );
     } catch (err) {
-      console.error(err);
-      // Local update if no API
-      setRestaurants(restaurants.map(r =>
-        r.restaurant_id === id ? { ...r, visible: newVisible, status: newVisible ? 'active' : 'inactive' } : r
-      ));
+      alert('Lỗi cập nhật trạng thái');
     }
   };
 
-  // Delete (update DB)
-  const deleteRestaurant = async (id: string) => {
-    if (!confirm('Xác nhận xóa?')) return;
+  // Lưu (Thêm hoặc Sửa)
+  const handleSave = async () => {
+    if (!formData.name || !formData.address) {
+      alert('Vui lòng nhập tên và địa chỉ');
+      return;
+    }
 
     try {
-      await api.delete(`/restaurants/${id}`); // Assume you add this route
-      setRestaurants(restaurants.filter(r => r.restaurant_id !== id));
-    } catch (err) {
-      console.error(err);
-      // Local delete if no API
-      setRestaurants(restaurants.filter(r => r.restaurant_id !== id));
+      if (editingRestaurant) {
+        // Cập nhật
+        const res = await api.put(`/admin/restaurants/${editingRestaurant.restaurant_id}`, {
+          name: formData.name,
+          phone: formData.phone || null,
+          address: formData.address,
+          radius_km: parseFloat(formData.radius_km) || 8.0,
+        });
+        setRestaurants(prev =>
+          prev.map(r => r.restaurant_id === editingRestaurant.restaurant_id ? res.data : r)
+        );
+      } else {
+        // Thêm mới
+        const res = await api.post('/admin/restaurants', {
+          name: formData.name,
+          phone: formData.phone || null,
+          address: formData.address,
+          radius_km: parseFloat(formData.radius_km) || 8.0,
+        });
+        setRestaurants([...restaurants, res.data]);
+      }
+
+      setIsModalOpen(false);
+    } catch (err: any) {
+      alert(err.response?.data?.error || 'Lỗi lưu thông tin');
     }
   };
+
+  if (loading) return <div className="page-header"><h1>Đang tải chi nhánh...</h1></div>;
 
   return (
     <>
       <header className="page-header">
         <div className="page-title">
-          <h1>Restaurant & Partner Management</h1>
-          <p>Add, edit, or toggle visibility of restaurants within the system</p>
+          <h1>Quản lý chi nhánh</h1>
+          <p>Thêm, chỉnh sửa và quản lý hiển thị các chi nhánh</p>
         </div>
-        <button className="add-btn" onClick={() => setIsModalOpen(true)}>
-          + Add Restaurant
+        <button className="add-btn" onClick={openAddModal}>
+          + Thêm chi nhánh
         </button>
       </header>
 
@@ -145,17 +141,10 @@ export default function AdminRestaurants() {
         <div className="search-bar">
           <input
             type="text"
-            placeholder="Search restaurants..."
+            placeholder="Tìm tên, địa chỉ, số điện thoại..."
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
           />
-        </div>
-        <div className="filter-container">
-          <select className="filter-select">
-            <option>All Status</option>
-            <option>Active</option>
-            <option>Inactive</option>
-          </select>
         </div>
       </div>
 
@@ -163,124 +152,96 @@ export default function AdminRestaurants() {
         <table className="restaurants-table">
           <thead>
             <tr>
-              <th>Restaurant</th>
-              <th>Contact</th>
-              <th>Address</th>
-              <th>Rating</th>
-              <th>Status</th>
-              <th>Visible</th>
-              <th>Actions</th>
+              <th>Chi nhánh</th>
+              <th>Liên hệ</th>
+              <th>Địa chỉ</th>
+              <th>Bán kính (km)</th>
+              <th>Trạng thái</th>
+              <th>Hiển thị</th>
+              <th>Chỉnh sửa</th>
             </tr>
           </thead>
           <tbody>
-            {filteredRestaurants.length > 0 ? (
-              filteredRestaurants.map((r) => (
-                <tr key={r.restaurant_id}>
-                  <td>
-                    <div className="restaurant-info">
-                      <strong>{r.name}</strong>
-                      <div className="id-text">ID: {r.restaurant_id}</div>
-                    </div>
-                  </td>
-                  <td>
-                    <div className="contact-info">
-                      <div>{r.phone}</div>
-                    </div>
-                  </td>
-                  <td>{r.address}</td>
-                  <td>
-                    <div className="rating">
-                      ★ {r.rating.toFixed(1)}
-                    </div>
-                  </td>
-                  <td>
-                    <span className={`status-badge ${r.status}`}>
-                      {r.status}
-                    </span>
-                  </td>
-                  <td>
-                    <label className="toggle-switch">
-                      <input
-                        type="checkbox"
-                        checked={r.visible}
-                        onChange={() => toggleVisible(r.restaurant_id)}
-                      />
-                      <span className="slider"></span>
-                    </label>
-                  </td>
-                  <td>
-                    <button className="action-btn edit" title="Edit">
-                      <span className="icon">✏️</span>
-                    </button>
-                    <button className="action-btn delete" onClick={() => deleteRestaurant(r.restaurant_id)} title="Delete">
-                      <span className="icon">🗑️</span>
-                    </button>
-                  </td>
-                </tr>
-              ))
-            ) : (
-              <tr>
-                <td colSpan={7} className="no-results">
-                  No restaurants found.
+            {filteredRestaurants.map((r) => (
+              <tr key={r.restaurant_id}>
+                <td>
+                  <div className="restaurant-info">
+                    <strong>{r.name}</strong>
+                    <div className="id-text">ID: {r.restaurant_id}</div>
+                  </div>
+                </td>
+                <td>{r.phone || '—'}</td>
+                <td>{r.address}</td>
+                <td>{r.radius_km}</td>
+                <td>
+                  <span className={`status-badge ${r.is_open ? 'active' : 'inactive'}`}>
+                    {r.is_open ? 'Đang mở' : 'Tạm đóng'}
+                  </span>
+                </td>
+                <td>
+                  <label className="toggle-switch">
+                    <input
+                      type="checkbox"
+                      checked={r.is_open}
+                      onChange={() => toggleVisible(r.restaurant_id)}
+                    />
+                    <span className="slider"></span>
+                  </label>
+                </td>
+                <td>
+                  <button
+                    className="action-btn edit"
+                    onClick={() => openEditModal(r)}
+                    title="Chỉnh sửa"
+                  >
+                    Edit
+                  </button>
                 </td>
               </tr>
+            ))}
+            {filteredRestaurants.length === 0 && (
+              <tr><td colSpan={7} className="no-results">Không tìm thấy chi nhánh</td></tr>
             )}
           </tbody>
         </table>
       </div>
 
+      {/* Modal Thêm / Sửa */}
       {isModalOpen && (
         <div className="modal-overlay" onClick={() => setIsModalOpen(false)}>
           <div className="modal-content" onClick={(e) => e.stopPropagation()}>
             <div className="modal-header">
-              <h2>Add New Restaurant</h2>
+              <h2>{editingRestaurant ? 'Chỉnh sửa chi nhánh' : 'Thêm chi nhánh mới'}</h2>
               <button className="close-btn" onClick={() => setIsModalOpen(false)}>×</button>
             </div>
             <div className="modal-body">
-              <p>Enter the restaurant details below</p>
               <div className="form-group">
-                <label>Restaurant Name</label>
-                <input
-                  type="text"
-                  placeholder="Enter restaurant name"
-                  value={formData.name}
-                  onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                />
+                <label>Tên chi nhánh *</label>
+                <input value={formData.name} onChange={e => setFormData({...formData, name: e.target.value})} placeholder="FoodieExpress Quận 1" />
               </div>
               <div className="form-group">
-                <label>Phone</label>
-                <input
-                  type="tel"
-                  placeholder="Enter phone number"
-                  value={formData.phone}
-                  onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
-                />
+                <label>Số điện thoại</label>
+                <input value={formData.phone} onChange={e => setFormData({...formData, phone: e.target.value})} placeholder="0123456789" />
               </div>
               <div className="form-group">
-                <label>Address</label>
-                <input
-                  type="text"
-                  placeholder="Enter full address"
-                  value={formData.address}
-                  onChange={(e) => setFormData({ ...formData, address: e.target.value })}
-                />
+                <label>Địa chỉ đầy đủ *</label>
+                <input value={formData.address} onChange={e => setFormData({...formData, address: e.target.value})} placeholder="123 Đường ABC, Quận 1, TP.HCM" />
               </div>
               <div className="form-group">
-                <label>Description</label>
-                <textarea
-                  placeholder="Enter restaurant description"
-                  value={formData.description}
-                  onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-                  rows={4}
+                <label>Bán kính giao hàng (km)</label>
+                <input
+                  type="number"
+                  step="0.5"
+                  min="1"
+                  value={formData.radius_km}
+                  onChange={e => setFormData({...formData, radius_km: e.target.value})}
                 />
               </div>
             </div>
             <div className="modal-footer">
-              <button className="cancel-btn" onClick={() => setIsModalOpen(false)}>
-                Cancel
-              </button>
-              <button className="add-rest-btn" onClick={handleAddRestaurant} disabled={!formData.name || !formData.address}>
-                Add Restaurant
+              <button className="cancel-btn" onClick={() => setIsModalOpen(false)}>Hủy</button>
+              <button className="add-rest-btn" onClick={handleSave}>
+                {editingRestaurant ? 'Cập nhật' : 'Thêm chi nhánh'}
               </button>
             </div>
           </div>

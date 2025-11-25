@@ -1,320 +1,266 @@
-// apps/web/src/components/pages/AdminOrdersPage.tsx
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
+import { useAppState } from '@fastfoodordering/store';
+import { apiClient } from '@fastfoodordering/utils';
+import { Order as BaseOrder, OrderStatus } from '@fastfoodordering/types';
 import '../../styles/AdminOrdersPage.css';
 
-// ĐÃ FIX: LẤY TOKEN TỪ localStorage NẾU CONTEXT BỊ MẤT
-const getToken = () => {
-  if (typeof window === 'undefined') return null;
-  const userStr = localStorage.getItem('user');
-  if (!userStr) return null;
-  try {
-    const user = JSON.parse(userStr);
-    return user?.token || null;
-  } catch {
-    return null;
-  }
-};
+interface AdminOrder extends Omit<BaseOrder, 'items'> {
+  order_id: number;
+  full_name: string;
+  restaurant_name: string;
+  restaurant_id: number;
+  total: number;
+  drone_name: string | null;
+  drone_id?: number;
+  status: OrderStatus;
+  delivery_address: string;
+  note?: string | null;
+  created_at: string;
+  
+  items: Array<{ 
+    name: string; 
+    quantity: number; 
+    unit_price: number; 
+  }>;
+}
+
+interface Drone {
+  drone_id: number;
+  name: string;
+  battery: number;
+}
 
 export default function AdminOrdersPage() {
-  // BỎ useAppState → DÙNG TOKEN TỪ localStorage
-  const [token, setToken] = useState<string | null>(null);
-
-  // Load token khi mount
-  useEffect(() => {
-    setToken(getToken());
-  }, []);
-
-  const [orders, setOrders] = useState<Order[]>([]);
+  // 1. Use the Shared Store for Token
+  const { token } = useAppState();
+  
+  const [orders, setOrders] = useState<AdminOrder[]>([]);
   const [loading, setLoading] = useState(true);
-  const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
+  const [selectedOrder, setSelectedOrder] = useState<AdminOrder | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
-  const [filterStatus, setFilterStatus] = useState<'all' | Order['status']>('all');
+  const [filterStatus, setFilterStatus] = useState<'all' | OrderStatus>('all');
+  const [availableDrones, setAvailableDrones] = useState<Drone[]>([]);
 
-  useEffect(() => {
-    const fetchOrders = async () => {
-      if (!token) {
-        console.log('Không có token → không fetch');
-        setLoading(false);
-        return;
-      }
-
-      try {
-        console.log('ĐANG FETCH ĐƠN HÀNG VỚI TOKEN:', token?.slice(0, 20) + '...');
-        const res = await fetch('http://localhost:3000/api/admin/all-orders', {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-        });
-
-        console.log('Response status:', res.status);
-        if (!res.ok) {
-        const text = await res.text();
-        console.error('Lỗi server:', text);
-        throw new Error(`HTTP ${res.status}`);
-        }
-
-        const data = await res.json();
-        console.log('NHẬN ĐƯỢC DATA:', data.length, 'đơn hàng');
-        console.log('Đơn đầu tiên:', data[0]);
-
-        // Normalize như cũ...
-        const normalizedOrders: Order[] = data.map((o: any) => {
-          let status: Order['status'] = 'pending';
-          if (o.status) {
-            const s = String(o.status).trim().toLowerCase();
-            const map: any = {
-              pending: 'pending',
-              confirmed: 'confirmed',
-              preparing: 'preparing',
-              out_for_delivery: 'out_for_delivery',
-              delivered: 'delivered',
-              cancelled: 'cancelled'
-            };
-            status = map[s] || 'pending';
-          }
-
-          return {
-            order_id: Number(o.order_id),
-            user_id: Number(o.user_id) || 0,
-            full_name: o.full_name || 'Khách vãng lai',
-            restaurant_name: o.restaurant_name || 'Không xác định',
-            total: Number(o.total) || 0,
-            drone_name: o.drone_name || null,
-            status,
-            delivery_address: o.delivery_address || '',
-            note: o.note || null,
-            created_at: o.created_at || new Date().toISOString(),
-            items: Array.isArray(o.items) ? o.items.map((it: any) => ({
-              name: it.name || 'Món ăn',
-              quantity: Number(it.quantity) || 1,
-              unit_price: Number(it.unit_price) || 0,
-            })) : [],
-          };
-        });
-
-        setOrders(normalizedOrders);
-        console.log('ĐÃ LOAD THÀNH CÔNG:', normalizedOrders.length, 'ĐƠN HÀNG');
-      } catch (err) {
-        console.error('LỖI FETCH:', err);
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    if (token) {
-      fetchOrders();
-      const interval = setInterval(fetchOrders, 8000);
-      return () => clearInterval(interval);
+  // 2. Fetch Orders using apiClient
+  const fetchOrders = useCallback(async () => {
+    if (!token) return;
+    try {
+      // apiClient handles Base URL and Auth Headers automatically
+      const data = await apiClient('/admin/all-orders', 'GET', null, token);
+      
+      // Normalize data if necessary (ensure numbers are numbers)
+      const normalized: AdminOrder[] = data.map((o: any) => ({
+        ...o,
+        total: Number(o.total) || 0,
+        status: o.status as OrderStatus,
+        items: Array.isArray(o.items) ? o.items : [],
+      }));
+      
+      setOrders(normalized);
+    } catch (err) {
+      console.error('Error fetching admin orders:', err);
+    } finally {
+      setLoading(false);
     }
   }, [token]);
 
-  // Phần render giữ nguyên như cũ...
-  if (loading) return <h1>Đang tải đơn hàng...</h1>;
-  if (!token) return <h1>Bạn cần đăng nhập với tài khoản Admin!</h1>;
+  // Polling Effect
+  useEffect(() => {
+    if (token) {
+      fetchOrders();
+      const interval = setInterval(fetchOrders, 5000); // Poll every 5s
+      return () => clearInterval(interval);
+    }
+  }, [token, fetchOrders]);
 
-  // LỌC & TÌM KIẾM – ĐÃ FIX HOÀN TOÀN
-  const filteredOrders = orders.filter(order => {
-    const search = searchTerm.toLowerCase();
-    const matchesSearch =
-      order.order_id.toString().includes(search) ||
-      order.full_name.toLowerCase().includes(search) ||
-      order.restaurant_name.toLowerCase().includes(search);
+  const loadDrones = async (restaurantId: number) => {
+    try {
+      const data = await apiClient(`/admin/drones/available/${restaurantId}`, 'GET', null, token);
+      setAvailableDrones(data);
+    } catch (err) {
+      console.error('Error loading drones:', err);
+    }
+  };
 
-    const matchesFilter = filterStatus === 'all' || order.status === filterStatus;
-    return matchesSearch && matchesFilter;
-  });
+  const confirmOrder = async () => {
+    if (!selectedOrder) return;
+    try {
+      await apiClient(`/admin/orders/${selectedOrder.order_id}/confirm`, 'PATCH', null, token);
+      fetchOrders();
+      setIsModalOpen(false);
+    } catch (err) {
+      alert('Failed to confirm order');
+    }
+  };
 
-  // ĐẾM TRẠNG THÁI – CHÍNH XÁC 100%
-  const statusCounts = orders.reduce((acc, o) => {
-    const s = o.status;
-    acc[s] = (acc[s] || 0) + 1;
-    return acc;
-  }, {} as Record<Order['status'], number>);
+  const assignDrone = async (droneId: number) => {
+    if (!selectedOrder || !droneId) return;
+    try {
+      const data = await apiClient(`/admin/orders/${selectedOrder.order_id}/assign-drone`, 'PATCH', { drone_id: droneId }, token);
+      alert('Drone Assigned: ' + (data.drone_name || 'Success'));
+      fetchOrders();
+      setIsModalOpen(false);
+    } catch (err: any) {
+      alert('Error: ' + (err.message || 'Unknown error'));
+    }
+  };
 
-  const handleViewDetails = (order: Order) => {
+  const handleViewDetails = (order: AdminOrder) => {
     setSelectedOrder(order);
+    setAvailableDrones([]);
+    if (order.status === 'confirmed') {
+        loadDrones(order.restaurant_id);
+    }
     setIsModalOpen(true);
   };
 
-  const getStatusIcon = (status: Order['status']) => {
-    switch (status) {
-      case 'pending': return '⏳';
-      case 'confirmed': return '✅';
-      case 'preparing': return '👨‍🍳';
-      case 'out_for_delivery': return '✈️';
-      case 'delivered': return '✅';
-      case 'cancelled': return '❌';
-      default: return '❓';
-    }
-  };
+  const filteredOrders = orders.filter(o => {
+    const s = searchTerm.toLowerCase();
+    const matchSearch = 
+      o.order_id.toString().includes(s) || 
+      o.full_name?.toLowerCase().includes(s) || 
+      o.restaurant_name?.toLowerCase().includes(s);
+    const matchStatus = filterStatus === 'all' || o.status === filterStatus;
+    
+    return matchSearch && matchStatus;
+  });
 
-  const getStatusColor = (status: Order['status']) => {
-    switch (status) {
-      case 'pending': return '#f59e0b';
-      case 'confirmed': return '#3b82f6';
-      case 'preparing': return '#8b5cf6';
-      case 'out_for_delivery': return '#06b6d4';
-      case 'delivered': return '#10b981';
-      case 'cancelled': return '#ef4444';
-      default: return '#6b7280';
-    }
-  };
+  const statusCounts = orders.reduce((acc: any, o) => {
+    acc[o.status] = (acc[o.status] || 0) + 1;
+    return acc;
+  }, {});
 
-  const formatPrice = (amount: number) => {
-    return new Intl.NumberFormat('vi-VN').format(amount) + 'đ';
-  };
+  const formatPrice = (n: number) => new Intl.NumberFormat('vi-VN').format(n) + 'đ';
 
-  if (loading) {
-    return (
-      <div className="page-header">
-        <h1>Đang tải đơn hàng...</h1>
-      </div>
-    );
-  }
+  if (!token) return <div className="p-4">Please log in as Admin.</div>;
+  if (loading) return <div className="p-4">Loading Orders...</div>;
 
   return (
     <>
-      <header className="page-header">
-        <div className="page-title">
-          <h1>Quản lý đơn hàng</h1>
-          <p>Theo dõi và xử lý đơn hàng giao bằng drone</p>
-        </div>
-      </header>
-
+      <header className="page-header"><h1>Admin Dashboard</h1></header>
+      
+      {/* Status Tabs */}
       <div className="status-tabs">
-        <div className="tab">
-          <span className="tab-icon">⏳</span>
-          <span className="tab-label">Chờ xử lý</span>
-          <span className="tab-count">{statusCounts.pending || 0}</span>
-        </div>
-        <div className="tab">
-          <span className="tab-icon">✅</span>
-          <span className="tab-label">Đã xác nhận</span>
-          <span className="tab-count">{statusCounts.confirmed || 0}</span>
-        </div>
-        <div className="tab">
-          <span className="tab-icon">✈️</span>
-          <span className="tab-label">Đang giao</span>
-          <span className="tab-count">{statusCounts.out_for_delivery || 0}</span>
-        </div>
-        <div className="tab">
-          <span className="tab-icon">✅</span>
-          <span className="tab-label">Hoàn thành</span>
-          <span className="tab-count">{statusCounts.delivered || 0}</span>
-        </div>
+        <div className="tab">Pending <span className="tab-count">{statusCounts.pending || 0}</span></div>
+        <div className="tab">Confirmed <span className="tab-count">{statusCounts.confirmed || 0}</span></div>
+        <div className="tab">Delivering <span className="tab-count">{statusCounts.out_for_delivery || 0}</span></div>
+        <div className="tab success">Completed <span className="tab-count">{statusCounts.delivered || 0}</span></div>
       </div>
 
+      {/* Controls */}
       <div className="table-controls">
-        <div className="search-bar">
-          <input
-            type="text"
-            placeholder="Tìm đơn hàng, khách hàng, nhà hàng..."
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-          />
-        </div>
-        <div className="filter-container">
-          <select value={filterStatus} onChange={(e) => setFilterStatus(e.target.value as any)}>
-            <option value="all">Tất cả trạng thái</option>
-            <option value="pending">Chờ xử lý</option>
-            <option value="confirmed">Đã xác nhận</option>
-            <option value="preparing">Đang chuẩn bị</option>
-            <option value="out_for_delivery">Đang giao</option>
-            <option value="delivered">Đã giao</option>
-            <option value="cancelled">Đã hủy</option>
-          </select>
-        </div>
+        <input 
+            placeholder="Search Order ID, Customer..." 
+            value={searchTerm} 
+            onChange={e => setSearchTerm(e.target.value)} 
+        />
+        <select value={filterStatus} onChange={e => setFilterStatus(e.target.value as any)}>
+          <option value="all">All Status</option>
+          <option value="pending">Pending</option>
+          <option value="confirmed">Confirmed</option>
+          <option value="out_for_delivery">Drone Delivery</option>
+          <option value="delivered">Delivered</option>
+        </select>
       </div>
 
-      <div className="table-container">
-        <table className="orders-table">
-          <thead>
+      {/* Orders Table */}
+      <table className="orders-table">
+        <thead>
             <tr>
-              <th>Mã đơn</th>
-              <th>Khách hàng</th>
-              <th>Nhà hàng</th>
-              <th>Tổng tiền</th>
-              <th>Drone</th>
-              <th>Trạng thái</th>
-              <th>Hành động</th>
+                <th>ID</th>
+                <th>Customer</th>
+                <th>Restaurant</th>
+                <th>Total</th>
+                <th>Drone</th>
+                <th>Status</th>
+                <th>Action</th>
             </tr>
-          </thead>
-          <tbody>
-            {filteredOrders.length === 0 ? (
-              <tr>
-                <td colSpan={7} style={{ textAlign: 'center', padding: '60px', fontSize: '18px', color: '#666' }}>
-                  Không tìm thấy đơn hàng nào
-                </td>
-              </tr>
-            ) : (
-              filteredOrders.map((order) => (
-                <tr key={order.order_id}>
-                  <td>#{order.order_id}</td>
-                  <td>{order.full_name}</td>
-                  <td>{order.restaurant_name}</td>
-                  <td>{formatPrice(order.total)}</td>
-                  <td>{order.drone_name || 'Chưa gán'}</td>
-                  <td>
-                    <span className="status-badge" style={{ backgroundColor: getStatusColor(order.status) }}>
-                      {getStatusIcon(order.status)} {order.status.replace(/_/g, ' ')}
-                    </span>
-                  </td>
-                  <td>
-                    <button className="view-btn" onClick={() => handleViewDetails(order)}>
-                      Xem chi tiết
-                    </button>
-                  </td>
-                </tr>
-              ))
-            )}
-          </tbody>
-        </table>
-      </div>
+        </thead>
+        <tbody>
+          {filteredOrders.map(o => (
+            <tr key={o.order_id}>
+              <td>#{o.order_id}</td>
+              <td>{o.full_name}</td>
+              <td>{o.restaurant_name}</td>
+              <td>{formatPrice(o.total)}</td>
+              <td>{o.drone_name || (o.drone_id ? `ID: ${o.drone_id}` : '-')}</td>
+              <td>
+                <span className={`status-badge ${o.status}`}>
+                  {o.status}
+                </span>
+              </td>
+              <td><button onClick={() => handleViewDetails(o)}>Details</button></td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
 
+      {/* Detail Modal */}
       {isModalOpen && selectedOrder && (
         <div className="modal-overlay" onClick={() => setIsModalOpen(false)}>
-          <div className="modal-content" onClick={(e) => e.stopPropagation()}>
+          <div className="modal-content" onClick={e => e.stopPropagation()}>
             <div className="modal-header">
-              <h2>Đơn hàng #{selectedOrder.order_id}</h2>
-              <button className="close-btn" onClick={() => setIsModalOpen(false)}>×</button>
+              <h2>Order #{selectedOrder.order_id}</h2>
+              <span className={`status-badge big ${selectedOrder.status}`}>
+                {selectedOrder.status}
+              </span>
             </div>
-            <div className="modal-body">
-              <p className="modal-subtitle">Khách: {selectedOrder.full_name}</p>
-              <p><strong>Nhà hàng:</strong> {selectedOrder.restaurant_name}</p>
-              <p><strong>Drone:</strong> {selectedOrder.drone_name || 'Chưa gán'}</p>
-              <p><strong>Địa chỉ:</strong> {selectedOrder.delivery_address}</p>
-              <p><strong>Ghi chú:</strong> {selectedOrder.note || 'Không có'}</p>
-              <p><strong>Thời gian:</strong> {new Date(selectedOrder.created_at).toLocaleString('vi-VN')}</p>
 
-              <div className="status-display" style={{ margin: '20px 0' }}>
-                <span className="status-icon" style={{ backgroundColor: getStatusColor(selectedOrder.status) }}>
-                  {getStatusIcon(selectedOrder.status)}
-                </span>
-                <div>
-                  <div className="status-label">Trạng thái</div>
-                  <div className="status-value">{selectedOrder.status.replace(/_/g, ' ')}</div>
+            <div className="info-grid">
+              <div className="info-card">
+                  <div className="info-label">Customer</div>
+                  <div className="info-value">{selectedOrder.full_name}</div>
+              </div>
+              <div className="info-card">
+                  <div className="info-label">Restaurant</div>
+                  <div className="info-value">{selectedOrder.restaurant_name}</div>
+              </div>
+              <div className="info-card">
+                  <div className="info-label">Address</div>
+                  <div className="info-value">{selectedOrder.delivery_address}</div>
+              </div>
+            </div>
+
+            <div className="items-section">
+              <h3>Items ({selectedOrder.items.length})</h3>
+              <div className="items-list">
+                {selectedOrder.items.map((item, i) => (
+                  <div className="item-row" key={i}>
+                    <span>{item.quantity}x {item.name}</span>
+                    <span>{formatPrice(item.unit_price * item.quantity)}</span>
+                  </div>
+                ))}
+              </div>
+              <div className="total-row">
+                <strong>Total</strong>
+                <strong>{formatPrice(selectedOrder.total)}</strong>
+              </div>
+            </div>
+
+            <div className="modal-actions">
+              {selectedOrder.status === 'pending' && (
+                <button className="btn-primary" onClick={confirmOrder}>Confirm Order</button>
+              )}
+
+              {selectedOrder.status === 'confirmed' && (
+                <div className="drone-select-wrapper">
+                    {availableDrones.length > 0 ? (
+                        <select onChange={e => assignDrone(Number(e.target.value))} defaultValue="" className="drone-select">
+                            <option value="" disabled>Select Drone</option>
+                            {availableDrones.map(d => (
+                            <option key={d.drone_id} value={d.drone_id}>
+                                {d.name} ({d.battery}%)
+                            </option>
+                            ))}
+                        </select>
+                    ) : (
+                        <span>No Drones Available at this Restaurant</span>
+                    )}
                 </div>
-              </div>
-
-              <div className="modal-section">
-                <h4>Món ăn:</h4>
-                {selectedOrder.items.length === 0 ? (
-                  <p>Không có món</p>
-                ) : (
-                  selectedOrder.items.map((it, i) => (
-                    <div key={i} style={{ margin: '8px 0' }}>
-                      • {it.quantity}x {it.name} - {formatPrice(it.unit_price * it.quantity)}
-                    </div>
-                  ))
-                )}
-                <strong>Tổng: {formatPrice(selectedOrder.total)}</strong>
-              </div>
-            </div>
-            <div className="modal-footer">
-              <button className="close-footer-btn" onClick={() => setIsModalOpen(false)}>
-                Đóng
-              </button>
+              )}
+              
+              <button className="btn-secondary" onClick={() => setIsModalOpen(false)}>Close</button>
             </div>
           </div>
         </div>

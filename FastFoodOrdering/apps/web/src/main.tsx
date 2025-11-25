@@ -8,7 +8,7 @@ import { useAppState } from './hooks/useAppState';
 import { setApiBaseUrl } from '@fastfoodordering/utils';
 
 
-setApiBaseUrl('http://localhost:3000/api');
+setApiBaseUrl('https://chiasmal-puffingly-etsuko.ngrok-free.dev/api');
 // Component nhỏ để load user từ localStorage (hook hợp lệ)
 function InitPersistedState() {
   const { loadPersistedState } = useAppState();
@@ -19,10 +19,10 @@ function InitPersistedState() {
 }
 
 ReactDOM.createRoot(document.getElementById('root')!).render(
-  <React.StrictMode>
+  
     <BrowserRouter>
       <InitPersistedState />
       <App />
     </BrowserRouter>
-  </React.StrictMode>
+  
 );

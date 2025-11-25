@@ -1,5 +1,6 @@
 {
   "name": "@fastfoodordering/utils",
   "version": "1.0.0",
-  "main": "src/index.ts"
+  "main": "src/index.ts",
+  "types": "src/index.ts"
 }

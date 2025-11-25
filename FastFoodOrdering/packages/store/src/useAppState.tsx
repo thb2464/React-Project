@@ -88,29 +88,48 @@ export const useAppState = create<AppState>()(
       clearCart: () => set({ cart: [] }),
 
       // --- THE ORDER FUNCTION ---
-      placeOrder: async (deliveryAddress) => {
-        const { cart, token } = get();
-        if (!token) throw new Error('You must be logged in to order.');
-        if (cart.length === 0) throw new Error('Cart is empty.');
+      placeOrder: async (deliveryAddress: string, note = '') => {
+        const { cart, token, user } = get();
+        
+        if (!token || !user) throw new Error('Bạn cần đăng nhập để đặt hàng');
+        if (cart.length === 0) throw new Error('Giỏ hàng trống');
+
+        // Tính total từ cart (giá thực tế)
+        const total = cart.reduce((sum, item) => sum + item.price * item.quantity, 0);
 
         const items = cart.map(item => ({
           item_id: item.item_id,
-          quantity: item.quantity
+          quantity: item.quantity,
+          unit_price: item.price // giá mỗi món
         }));
 
-        const restaurantId = cart[0].restaurant_id || 1; 
+        const restaurantId = cart[0].restaurant_id || 1;
         
+        const orderData = {
+          restaurant_id: restaurantId,
+          total_amount: total,        // ← ĐÚNG TÊN CỘT TRONG DB (mặc dù backend cũng chấp nhận total)
+          total: total,               // ← GỬI CẢ 2 ĐỂ AN TOÀN
+          delivery_address: deliveryAddress,
+          note: note || null,
+          items: items,
+          payment_method: 'COD'
+        };
+        
+        console.log('Đang gửi đơn hàng:', orderData);
         // Removed totalAmount calculation from here and payload
         
-        await apiClient('/orders', 'POST', {
-          restaurant_id: restaurantId,
-          delivery_address: deliveryAddress,
-          items: items,
-          payment_method: 'COD' 
-        }, token);
-
-        set({ cart: [] });
-      },
+        try {
+            await apiClient('/orders', 'POST', orderData, token);
+            
+            // XÓA GIỎ HÀNG SAU KHI ĐẶT THÀNH CÔNG
+            set({ cart: [] });
+            
+            console.log('Đặt hàng thành công!');
+          } catch (error: any) {
+            console.error('Lỗi đặt hàng:', error);
+            throw new Error(error.message || 'Không thể đặt hàng');
+          }
+        },
     }),
     {
       name: 'foodie-state',

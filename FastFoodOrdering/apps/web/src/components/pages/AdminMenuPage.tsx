@@ -1,306 +1,287 @@
 // apps/web/src/components/pages/AdminMenuPage.tsx
 import React, { useState, useEffect } from 'react';
-import '../../styles/AdminMenuPage.css'; // Create this CSS file (code below)
+import '../../styles/AdminMenuPage.css';
 import { useAppState } from '../../hooks/useAppState';
+import api from '../../services/api';
 
 interface MenuItem {
-  id: string;
+  item_id: number;
   name: string;
-  description: string;
-  image: string;
-  restaurant: string;
-  category: string;
   price: number;
-  stock: number;
-  status: 'in-stock' | 'out-of-stock';
-  visible: boolean;
+  category: string;
+  img_url: string | null;
+  qty: number;
+  is_available: boolean;
+  is_veg?: boolean;
+  has_active_order?: boolean;
+  restaurant_name?: string;
 }
+
+// PLACEHOLDER SIÊU ỔN ĐỊNH – KHÔNG BAO GIỜ BỊ BLOCK Ở VIỆT NAM
+const PLACEHOLDER = 'https://placehold.co/60x60/eeeeee/999999/png?text=No+Image';
+const PLACEHOLDER_BIG = 'https://placehold.co/200x200/eeeeee/999999/png?text=Preview';
 
 export default function AdminMenuPage() {
   const { user } = useAppState();
-
-  // Mock data (replace with API later)
-  const [menuItems, setMenuItems] = useState<MenuItem[]>([
-    {
-      id: 'item1',
-      name: 'Classic Burger',
-      description: 'Juicy beef patty with fresh toppings',
-      image: 'burger.jpg',
-      restaurant: 'Burger Palace',
-      category: 'Main Course',
-      price: 12.99,
-      stock: 50,
-      status: 'in-stock',
-      visible: true,
-    },
-    {
-      id: 'item2',
-      name: 'Margherita Pizza',
-      description: 'Fresh mozzarella and basil',
-      image: 'pizza.jpg',
-      restaurant: 'Pizza Paradise',
-      category: 'Pizza',
-      price: 14.99,
-      stock: 30,
-      status: 'in-stock',
-      visible: true,
-    },
-    {
-      id: 'item3',
-      name: 'California Roll',
-      description: 'Avocado, crab, and cucumber',
-      image: 'sushi.jpg',
-      restaurant: 'Sushi Master',
-      category: 'Sushi',
-      price: 18.99,
-      stock: 0,
-      status: 'out-of-stock',
-      visible: false,
-    },
-  ]);
-
-  // Modal state
+  const [items, setItems] = useState<MenuItem[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [searchTerm, setSearchTerm] = useState('');
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [editingItem, setEditingItem] = useState<MenuItem | null>(null);
+
   const [formData, setFormData] = useState({
     name: '',
     price: '',
-    restaurant: '',
-    description: '',
-    category: '',
-    image: null as File | null,
+    category: 'Main Course',
+    img_url: '',
+    qty: 999,
+    is_veg: false,
   });
 
-  const [searchTerm, setSearchTerm] = useState('');
+  // FIX CHẮN CHẮN – DÙ VITE_API_URL CÓ HAY KHÔNG CŨNG CHẠY
+const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:3000/api';
+  
+  const UPLOADS_URL = import.meta.env.VITE_UPLOADS_URL || 'http://localhost:3000/uploads';
 
-  // Filter menu items
-  const filteredMenuItems = menuItems.filter(item =>
-    item.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    item.restaurant.toLowerCase().includes(searchTerm.toLowerCase())
+  useEffect(() => {
+    loadMenu();
+  }, []);
+
+  const loadMenu = async () => {
+    try {
+      const res = await api.get('/admin/menu');
+      const data = Array.isArray(res.data) ? res.data : [];
+      setItems(data.map(item => ({
+        ...item,
+        restaurant_name: item.restaurant_name || 'Chung',
+        qty: item.qty ?? 999,
+        is_available: item.is_available ?? true,
+        is_veg: item.is_veg ?? false,
+        has_active_order: item.has_active_order ?? false,
+      })));
+    } catch (err: any) {
+      console.error('Lỗi tải menu:', err);
+      alert('Lỗi tải menu: ' + (err.response?.data?.error || 'Server error'));
+      setItems([]);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const filtered = items.filter(i =>
+    i.name.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
-  const handleAddMenuItem = (e: React.FormEvent) => {
-    e.preventDefault();
-    const newItem: MenuItem = {
-      id: `item${menuItems.length + 1}`,
-      name: formData.name,
-      description: formData.description,
-      image: formData.image ? URL.createObjectURL(formData.image) : 'default.jpg',
-      restaurant: formData.restaurant,
-      category: formData.category,
+  const handleSave = async () => {
+    if (!formData.name.trim() || !formData.price) return alert('Nhập tên và giá!');
+
+    const payload = {
+      name: formData.name.trim(),
       price: parseFloat(formData.price),
-      stock: 100, // Default stock
-      status: 'in-stock',
-      visible: true,
+      category: formData.category,
+      img_url: formData.img_url.trim() || null,
+      qty: formData.qty,
+      is_veg: formData.is_veg,
     };
-    setMenuItems([...menuItems, newItem]);
-    setIsModalOpen(false);
+
+    try {
+      if (editingItem) {
+        const res = await api.put(`/admin/menu/${editingItem.item_id}`, payload);
+        setItems(prev => prev.map(x => x.item_id === editingItem.item_id ? res.data : x));
+      } else {
+        const res = await api.post('/admin/menu', payload);
+        setItems(prev => [...prev, res.data]);
+      }
+      setIsModalOpen(false);
+      setEditingItem(null);
+    } catch (err: any) {
+      alert(err.response?.data?.error || 'Lỗi lưu món');
+    }
+  };
+
+  const handleDelete = async (item: MenuItem) => {
+    if (item.has_active_order) return alert('Không thể xóa món đang có đơn!');
+    if (!confirm(`Xóa "${item.name}"?`)) return;
+
+    try {
+      await api.delete(`/admin/menu/${item.item_id}`);
+      setItems(prev => prev.filter(x => x.item_id !== item.item_id));
+    } catch (err: any) {
+      alert(err.response?.data?.error || 'Xóa thất bại');
+    }
+  };
+
+  const openEdit = (item: MenuItem) => {
+    setEditingItem(item);
     setFormData({
-      name: '',
-      price: '',
-      restaurant: '',
-      description: '',
-      category: '',
-      image: null,
+      name: item.name,
+      price: item.price.toString(),
+      category: item.category,
+      img_url: item.img_url || '',
+      qty: item.qty,
+      is_veg: item.is_veg || false,
     });
+    setIsModalOpen(true);
   };
 
-  const toggleVisible = (id: string) => {
-    setMenuItems(menuItems.map(item => 
-      item.id === id ? { ...item, visible: !item.visible } : item
+  if (loading) return <div style={{ padding: 60, textAlign: 'center' }}>Đang tải menu...</div>;
+
+  const toggleAvailability = async (item: MenuItem) => {
+  if (item.has_active_order) {
+    return alert('Không thể tắt món đang có trong đơn hàng chưa giao!');
+  }
+
+  const action = item.is_available ? 'TẮT (Hết hàng)' : 'BẬT (Còn hàng)';
+  if (!confirm(`Bạn muốn ${action} món "${item.name}"?`)) return;
+
+  try {
+    const res = await api.patch(`/admin/menu/${item.item_id}/toggle`, {
+      is_available: !item.is_available
+    });
+
+    setItems(prev => prev.map(x =>
+      x.item_id === item.item_id
+        ? { ...x, is_available: res.data.is_available, qty: res.data.qty }
+        : x
     ));
-  };
 
-  const deleteMenuItem = (id: string) => {
-    setMenuItems(menuItems.filter(item => item.id !== id));
-  };
+    alert(`Đã ${res.data.is_available ? 'bật lại' : 'tắt'} món thành công!`);
+  } catch (err: any) {
+    alert(err.response?.data?.error || 'Lỗi cập nhật trạng thái');
+  }
+};
 
   return (
     <>
-      {/* Page Header */}
       <header className="page-header">
         <div className="page-title">
-          <h1>Menu & Product Management</h1>
-          <p>Update prices, add new dishes, and manage images</p>
+          <h1>Quản Lý Menu Admin</h1>
+          <p>Thêm/sửa/xóa món ăn toàn hệ thống</p>
         </div>
-        <button className="add-btn" onClick={() => setIsModalOpen(true)}>
-          + Add Menu Item
+        <button className="add-btn" onClick={() => {
+          setEditingItem(null);
+          setFormData({ name: '', price: '', category: 'Main Course', img_url: '', qty: 999, is_veg: false });
+          setIsModalOpen(true);
+        }}>
+          + Thêm Món
         </button>
       </header>
 
-      {/* Search & Filter */}
       <div className="table-controls">
-        <div className="search-bar">
-          <input
-            type="text"
-            placeholder="Search menu items..."
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-          />
-        </div>
-        <div className="filter-container">
-          <select className="filter-select">
-            <option>All Categories</option>
-            <option>Main Course</option>
-            <option>Pizza</option>
-            <option>Sushi</option>
-          </select>
-        </div>
+        <input
+          type="text"
+          placeholder="Tìm món ăn..."
+          value={searchTerm}
+          onChange={e => setSearchTerm(e.target.value)}
+        />
       </div>
 
-      {/* Table */}
       <div className="table-container">
         <table className="menu-table">
           <thead>
             <tr>
-              <th>Item</th>
-              <th>Restaurant</th>
-              <th>Category</th>
-              <th>Price</th>
-              <th>Stock</th>
-              <th>Status</th>
-              <th>Actions</th>
+              <th>Ảnh</th>
+              <th>Tên món</th>
+              <th>Giá</th>
+              <th>Danh mục</th>
+              <th>Trạng thái</th>
+              <th>Hành động</th>
             </tr>
           </thead>
           <tbody>
-            {filteredMenuItems.length > 0 ? (
-              filteredMenuItems.map((item) => (
-                <tr key={item.id}>
-                  <td>
-                    <div className="item-info">
-                      <img src={item.image} alt={item.name} className="item-image" />
-                      <div className="item-details">
-                        <strong>{item.name}</strong>
-                        <div className="item-desc">{item.description}</div>
-                      </div>
-                    </div>
-                  </td>
-                  <td>{item.restaurant}</td>
-                  <td>{item.category}</td>
-                  <td>${item.price.toFixed(2)}</td>
-                  <td>{item.stock}</td>
-                  <td>
-                    <span className={`stock-badge ${item.status}`}>
-                      {item.status}
-                    </span>
-                  </td>
-                  <td>
-                    <label className="toggle-switch">
-                      <input
-                        type="checkbox"
-                        checked={item.visible}
-                        onChange={() => toggleVisible(item.id)}
-                      />
-                      <span className="slider"></span>
-                    </label>
-                  </td>
-                  <td>
-                    <button className="action-btn edit" title="Edit">
-                      <span className="icon">✏️</span>
-                    </button>
-                    <button className="action-btn delete" onClick={() => deleteMenuItem(item.id)} title="Delete">
-                      <span className="icon">🗑️</span>
-                    </button>
-                  </td>
-                </tr>
-              ))
-            ) : (
-              <tr>
-                <td colSpan={8} className="no-results">
-                  No menu items found.
+            {filtered.map(item => (
+              <tr key={item.item_id}>
+                <td>
+                  {item.img_url ? (
+                    <img
+                      src={item.img_url ? `${UPLOADS_URL}/${item.img_url}` : PLACEHOLDER}
+                      alt={item.name}
+                      onError={(e) => { e.currentTarget.src = PLACEHOLDER; }}
+                      style={{ width: 60, height: 60, borderRadius: 8, objectFit: 'cover' }}
+                    />
+                  ) : (
+                    <img src={PLACEHOLDER} alt="No Image" style={{ width: 60, height: 60, borderRadius: 8 }} />
+                  )}
+                </td>
+                <td><strong>{item.name}</strong></td>
+                <td>{item.price.toLocaleString()}đ</td>
+                <td>{item.category}</td>
+                <td>
+                  <button
+                    onClick={() => toggleAvailability(item)}
+                    disabled={item.has_active_order}
+                    style={{
+                      padding: '10px 16px',
+                      borderRadius: 30,
+                      border: 'none',
+                      fontWeight: 'bold',
+                      fontSize: '12px',
+                      cursor: item.has_active_order ? 'not-allowed' : 'pointer',
+                      background: item.is_available ? '#10b981' : '#ef4444',
+                      color: 'white',
+                      opacity: item.has_active_order ? 0.6 : 1,
+                      minWidth: '100px'
+                    }}
+                    title={item.has_active_order ? 'Đang có đơn → không thể tắt' : 'Nhấn để đổi trạng thái'}
+                  >
+                    {item.is_available ? 'Còn hàng' : 'Hết hàng'}
+                  </button>
+                </td>
+                <td>
+                  <button onClick={() => openEdit(item)}>Sửa</button>
+                  <button
+                    onClick={() => handleDelete(item)}
+                    style={{ marginLeft: 8, color: item.has_active_order ? '#999' : '#ef4444' }}
+                    disabled={!!item.has_active_order}
+                  >
+                    Xóa
+                  </button>
                 </td>
               </tr>
-            )}
+            ))}
           </tbody>
         </table>
       </div>
 
-      {/* Add Menu Item Modal */}
+      {/* Modal */}
       {isModalOpen && (
         <div className="modal-overlay" onClick={() => setIsModalOpen(false)}>
-          <div className="modal-content" onClick={(e) => e.stopPropagation()}>
-            <div className="modal-header">
-              <h2>Add New Menu Item</h2>
-              <button className="close-btn" onClick={() => setIsModalOpen(false)}>×</button>
+          <div className="modal-content" onClick={e => e.stopPropagation()}>
+            <h2>{editingItem ? 'Sửa Món' : 'Thêm Món Mới'}</h2>
+
+            {formData.img_url && (
+              <div style={{ textAlign: 'center', margin: '16px 0' }}>
+                <p>Preview:</p>
+                <img
+                  src={`${UPLOADS_URL}/${formData.img_url}`}
+                  onError={(e) => e.currentTarget.src = PLACEHOLDER_BIG}
+                />
+              </div>
+            )}
+
+            <div style={{ display: 'grid', gap: 12 }}>
+              <input placeholder="Tên món" value={formData.name} onChange={e => setFormData({ ...formData, name: e.target.value })} />
+              <input type="number" placeholder="Giá" value={formData.price} onChange={e => setFormData({ ...formData, price: e.target.value })} />
+              <input placeholder="Tên file ảnh (vd: burger.jpg)" value={formData.img_url} onChange={e => setFormData({ ...formData, img_url: e.target.value })} />
+              <select value={formData.category} onChange={e => setFormData({ ...formData, category: e.target.value })}>
+                <option>Main Course</option>
+                <option>Drink</option>
+                <option>Dessert</option>
+                <option>Pizza</option>
+                <option>Sushi</option>
+              </select>
+              <label>
+                <input type="checkbox" checked={formData.is_veg} onChange={e => setFormData({ ...formData, is_veg: e.target.checked })} />
+                Món chay
+              </label>
             </div>
-            <form onSubmit={handleAddMenuItem} className="modal-body">
-              <p>Enter the menu item details below</p>
-              <div className="form-group">
-                <label>Item Name</label>
-                <input
-                  type="text"
-                  placeholder="Enter item name"
-                  value={formData.name}
-                  onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                  required
-                />
-              </div>
-              <div className="form-group">
-                <label>Price</label>
-                <input
-                  type="number"
-                  step="0.01"
-                  placeholder="Enter price"
-                  value={formData.price}
-                  onChange={(e) => setFormData({ ...formData, price: e.target.value })}
-                  required
-                />
-              </div>
-              <div className="form-group">
-                <label>Restaurant</label>
-                <select
-                  value={formData.restaurant}
-                  onChange={(e) => setFormData({ ...formData, restaurant: e.target.value })}
-                  required
-                >
-                  <option value="">Select restaurant</option>
-                  <option value="Burger Palace">Burger Palace</option>
-                  <option value="Pizza Paradise">Pizza Paradise</option>
-                  <option value="Sushi Master">Sushi Master</option>
-                </select>
-              </div>
-              <div className="form-group">
-                <label>Description</label>
-                <textarea
-                  placeholder="Enter description"
-                  value={formData.description}
-                  onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-                  rows={3}
-                  required
-                />
-              </div>
-              <div className="form-group">
-                <label>Category</label>
-                <select
-                  value={formData.category}
-                  onChange={(e) => setFormData({ ...formData, category: e.target.value })}
-                  required
-                >
-                  <option value="">Select category</option>
-                  <option value="Main Course">Main Course</option>
-                  <option value="Pizza">Pizza</option>
-                  <option value="Sushi">Sushi</option>
-                </select>
-              </div>
-              <div className="form-group">
-                <label>Upload Image</label>
-                <div className="image-upload">
-                  <input
-                    type="file"
-                    accept="image/*"
-                    onChange={(e) => setFormData({ ...formData, image: e.target.files?.[0] || null })}
-                  />
-                  <button type="button" className="choose-btn">Choose Image</button>
-                </div>
-              </div>
-              <div className="modal-footer">
-                <button type="button" className="cancel-btn" onClick={() => setIsModalOpen(false)}>
-                  Cancel
-                </button>
-                <button type="submit" className="add-item-btn" disabled={!formData.name || !formData.price || !formData.restaurant}>
-                  Add Menu Item
-                </button>
-              </div>
-            </form>
+
+            <div style={{ marginTop: 24, textAlign: 'right' }}>
+              <button onClick={() => setIsModalOpen(false)}>Hủy</button>
+              <button onClick={handleSave} style={{ marginLeft: 12, background: '#10b981', color: 'white', padding: '10px 20px', borderRadius: 8 }}>
+                {editingItem ? 'Cập nhật' : 'Thêm món'}
+              </button>
+            </div>
           </div>
         </div>
       )}

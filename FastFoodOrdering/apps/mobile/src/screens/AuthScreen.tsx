@@ -37,6 +37,7 @@ export default function AuthScreen() {
     <View style={styles.container}>
       <Ionicons name="fast-food-outline" size={80} color="#000" />
       <Text style={styles.title}>Welcome!</Text>
+
       <TextInput
         style={styles.input}
         placeholder="Email"

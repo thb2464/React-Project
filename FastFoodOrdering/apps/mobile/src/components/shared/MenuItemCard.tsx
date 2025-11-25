@@ -8,48 +8,54 @@ import {
 } from 'react-native';
 import { MenuItemType } from '@fastfoodordering/types';
 import { useAppState } from '@fastfoodordering/store';
+
 interface Props {
   item: MenuItemType;
 }
 
-const SERVER_URL = 'http://192.168.2.253:3000';
+const REMOTE_API_URL = 'https://chiasmal-puffingly-etsuko.ngrok-free.dev/api';
 
-const getImageUrl = (url: string) => {
+const getImageUrl = (url?: string) => {
   if (!url) return 'https://via.placeholder.com/150';
   if (url.startsWith('http')) return url;
-  return `${SERVER_URL}/uploads/${url}`;
+  return `${REMOTE_API_URL}/uploads/${url}`;
 };
 
 function MenuItemCard({ item }: Props) {
   const { addToCart } = useAppState();
 
+  const getImageUrl = (url?: string) => {
+    if (!url) return 'https://via.placeholder.com/150'; // Basic fallback
+    if (url.startsWith('http')) return url;
+    return `${REMOTE_API_URL}/uploads/${url}`;
+  };
+
   return (
     <View style={styles.card}>
       <Image 
-        source={{ uri: getImageUrl(item.img_url) }} 
+        source={{ 
+          uri: getImageUrl(item.img_url),
+          // THIS IS THE FIX: Pass the header to bypass Ngrok warning
+          headers: { "ngrok-skip-browser-warning": "true" }
+        }} 
         style={styles.cardImage} 
+        resizeMode="cover"
       />
+      
+      {/* ... Rest of the component (Body, Title, Price, Buttons) ... */}
       <View style={styles.cardBody}>
-        <Text style={styles.cardTitle} numberOfLines={1}>
-          {item.name}
-        </Text>
-        <Text style={styles.cardDescription} numberOfLines={2}>
-          {item.category} 
-        </Text>
+        <Text style={styles.cardTitle} numberOfLines={1}>{item.name}</Text>
+        <Text style={styles.cardDescription} numberOfLines={1}>{item.category}</Text>
         <View style={styles.cardFooter}>
-          <Text style={styles.cardPrice}>${Number(item.price).toFixed(2)}</Text>
-          <TouchableOpacity 
-            style={styles.addToCartBtn} 
-            onPress={() => addToCart(item)}
-          >
-            <Text style={styles.addToCartBtnText}>Add</Text>
-          </TouchableOpacity>
+            <Text style={styles.cardPrice}>${Number(item.price || 0).toFixed(2)}</Text>
+            <TouchableOpacity style={styles.addToCartBtn} onPress={() => addToCart(item)}>
+                <Text style={styles.addToCartBtnText}>Add</Text>
+            </TouchableOpacity>
         </View>
       </View>
     </View>
   );
 }
-
 const styles = StyleSheet.create({
   card: {
     backgroundColor: '#FFFFFF',
@@ -66,6 +72,7 @@ const styles = StyleSheet.create({
   cardImage: {
     width: '100%',
     height: 150,
+    backgroundColor: '#eee', // Gray background while loading
   },
   cardBody: {
     padding: 12,
@@ -79,7 +86,7 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: '#666',
     marginBottom: 8,
-    height: 35,
+    height: 20, // Adjusted height
   },
   cardFooter: {
     flexDirection: 'row',

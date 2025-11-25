@@ -32,3 +32,4 @@ export type ProfileScreenNavigationProp = BottomTabNavigationProp<
   RootTabParamList,
   'ProfileTab'
 >;
+
