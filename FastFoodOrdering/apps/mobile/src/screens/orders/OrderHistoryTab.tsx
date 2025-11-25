@@ -1,115 +1,90 @@
-import React from 'react';
-import {
-  View,
-  Text,
-  StyleSheet,
-  FlatList,
-  TouchableOpacity,
-} from 'react-native';
+import React, { useCallback } from 'react';
+import { View, Text, StyleSheet, FlatList, ActivityIndicator, RefreshControl } from 'react-native';
 import { useOrderHistory } from '@fastfoodordering/hooks';
-import { Order } from '@fastfoodordering/types';
-import Ionicons from '@expo/vector-icons/Ionicons';
+import { useFocusEffect } from '@react-navigation/native';
+
+const formatPrice = (n: number) => new Intl.NumberFormat('vi-VN').format(n) + 'đ';
 
 export default function OrderHistoryTab() {
-  // 1. Get logic from the hook
-  const { orders } = useOrderHistory();
+  const { orders, isLoading, refresh } = useOrderHistory();
 
-  // 2. Define how to render a single order card
-  const renderOrderCard = ({ item }: { item: Order }) => (
-    <View style={styles.card}>
-      <View style={styles.cardHeader}>
-        <View>
-          <Text style={styles.orderId}>Order #{item.id}</Text>
-          <Text style={styles.orderDate}>{item.date}</Text>
-          <Text style={styles.droneName}>Drone: {item.droneName}</Text>
-        </View>
-        <Text style={styles.total}>${item.total.toFixed(2)}</Text>
-      </View>
-      <View style={styles.cardActions}>
-        <TouchableOpacity style={styles.actionButton}>
-          <Ionicons name="repeat" size={16} color="#007AFF" />
-          <Text style={styles.actionText}>Reorder</Text>
-        </TouchableOpacity>
-        <TouchableOpacity style={styles.actionButton}>
-          <Ionicons name="star" size={16} color="#007AFF" />
-          <Text style={styles.actionText}>Rate Order</Text>
-        </TouchableOpacity>
-        <TouchableOpacity style={styles.actionButton}>
-          <Ionicons name="eye" size={16} color="#007AFF" />
-          <Text style={styles.actionText}>View Details</Text>
-        </TouchableOpacity>
-      </View>
-    </View>
+  useFocusEffect(
+    useCallback(() => {
+      refresh();
+    }, [refresh])
   );
 
-  // 3. Render the UI
+  // --- TRANSLATION HELPER (Matches CurrentOrderTab) ---
+  const getStatusText = (s: string) => {
+    switch(s) {
+      case 'pending': return 'Chờ xác nhận';
+      case 'confirmed': return 'Đã xác nhận';
+      case 'preparing': return 'Đang chuẩn bị';
+      case 'out_for_delivery': return 'Đang giao hàng';
+      case 'delivered': return 'Đã giao hàng';
+      case 'cancelled': return 'Đã hủy';
+      default: return s.replace(/_/g, ' '); // Fallback: remove underscores if no match
+    }
+  };
+
+  const renderItem = ({ item }: { item: any }) => {
+    const totalAmount = Number(item.total) || 0;
+    
+    const getStatusColor = (status: string) => {
+      switch (status) {
+        case 'pending': return 'orange';
+        case 'confirmed': return '#007AFF';
+        case 'out_for_delivery': return '#34C759';
+        case 'delivered': return 'gray';
+        default: return '#333';
+      }
+    };
+
+    return (
+      <View style={styles.card}>
+        <View style={styles.row}>
+          <Text style={styles.date}>{new Date(item.created_at).toLocaleDateString('vi-VN')}</Text>
+          {/* FIX: Use getStatusText here */}
+          <Text style={[styles.status, { color: getStatusColor(item.status) }]}>
+            {getStatusText(item.status).toUpperCase()}
+          </Text>
+        </View>
+        <Text style={styles.restaurant}>{item.restaurant_name}</Text>
+        <View style={styles.divider} />
+        <View style={styles.row}>
+          <Text style={styles.itemsText}>{item.items?.length || 0} món</Text>
+          <Text style={styles.total}>{formatPrice(totalAmount)}</Text>
+        </View>
+      </View>
+    );
+  };
+
+  if (isLoading && orders.length === 0) return <View style={styles.center}><ActivityIndicator size="large" color="#000" /></View>;
+
   return (
-    <FlatList
-      data={orders}
-      keyExtractor={(item) => item.id}
-      renderItem={renderOrderCard}
-      style={styles.container}
-      contentContainerStyle={styles.listContent}
-    />
+    <View style={styles.container}>
+      <FlatList
+        data={orders}
+        renderItem={renderItem}
+        keyExtractor={(item) => item.order_id.toString()} 
+        contentContainerStyle={styles.listContent}
+        refreshControl={<RefreshControl refreshing={isLoading} onRefresh={refresh} />}
+        ListEmptyComponent={<View style={styles.center}><Text>Chưa có lịch sử đơn hàng.</Text></View>}
+      />
+    </View>
   );
 }
 
-// 4. Add the styles
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: '#f4f4f4',
-  },
-  listContent: {
-    padding: 16,
-  },
-  card: {
-    backgroundColor: '#fff',
-    borderRadius: 8,
-    padding: 16,
-    marginBottom: 16,
-    elevation: 2,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.1,
-    shadowRadius: 2,
-  },
-  cardHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-  },
-  orderId: {
-    fontSize: 16,
-    fontWeight: 'bold',
-  },
-  orderDate: {
-    color: '#666',
-    marginVertical: 4,
-  },
-  droneName: {
-    color: '#666',
-    fontSize: 12,
-  },
-  total: {
-    fontSize: 16,
-    fontWeight: 'bold',
-    color: '#34C759', // Green
-  },
-  cardActions: {
-    flexDirection: 'row',
-    justifyContent: 'space-around',
-    borderTopWidth: 1,
-    borderTopColor: '#eee',
-    marginTop: 16,
-    paddingTop: 16,
-  },
-  actionButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  actionText: {
-    marginLeft: 6,
-    color: '#007AFF', // Blue
-    fontWeight: '500',
-  },
+  container: { flex: 1, backgroundColor: '#f4f4f4' },
+  center: { flex: 1, justifyContent: 'center', alignItems: 'center' },
+  listContent: { padding: 16 },
+  card: { backgroundColor: '#fff', borderRadius: 12, padding: 16, marginBottom: 12, elevation: 2 },
+  row: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
+  date: { color: '#888', fontSize: 12 },
+  status: { fontWeight: 'bold', fontSize: 12 },
+  restaurant: { fontSize: 16, fontWeight: 'bold', marginTop: 4, marginBottom: 8 },
+  divider: { height: 1, backgroundColor: '#eee', marginVertical: 8 },
+  itemsText: { color: '#666' },
+  total: { fontSize: 16, fontWeight: 'bold' },
 });

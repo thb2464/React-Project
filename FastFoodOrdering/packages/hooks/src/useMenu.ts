@@ -1,52 +1,38 @@
 import { useState, useEffect } from 'react';
 import { apiClient } from '@fastfoodordering/utils';
-import { MenuItemType, Category } from '@fastfoodordering/types';
+import { MenuItemType } from '@fastfoodordering/types';
+import { useAppState } from '@fastfoodordering/store';
 
 export function useMenu() {
-  // We will build categories dynamically from the items
-  const [categories, setCategories] = useState<Category[]>([]);
-  const [selectedCategory, setSelectedCategory] = useState('All Items');
-  const [filteredItems, setFilteredItems] = useState<MenuItemType[]>([]);
-  const [allItems, setAllItems] = useState<MenuItemType[]>([]);
+  const { token } = useAppState();
+  const [items, setItems] = useState<MenuItemType[]>([]);
+  const [categories, setCategories] = useState<string[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    const loadMenu = async () => {
+    const fetchMenu = async () => {
       try {
-        // Call the Real API
-        const data: MenuItemType[] = await apiClient('/food-items', 'GET');
+        setIsLoading(true);
+        // FIX: Cast the response to MenuItemType[] so TypeScript knows the shape
+        const data = await apiClient('/food-items') as MenuItemType[]; 
         
-        setAllItems(data);
-        setFilteredItems(data);
+        setItems(data);
 
-        // Extract unique categories from the data
-        const uniqueCats = Array.from(new Set(data.map(item => item.category)));
-        const catList = [
-          { name: 'All Items', icon: '🌍' },
-          ...uniqueCats.map(c => ({ name: c, icon: '🍽️' }))
-        ];
-        setCategories(catList);
-
-      } catch (error) {
-        console.error("Failed to load menu", error);
+        // Now TS knows 'i.category' is a string
+        const uniqueCats = Array.from(new Set(data.map((i) => i.category)));
+        setCategories(['All', ...uniqueCats]);
+        
+      } catch (err: any) {
+        console.error('Fetch Menu Error:', err);
+        setError(err.message || 'Failed to load menu');
+      } finally {
+        setIsLoading(false);
       }
     };
-    loadMenu();
+
+    fetchMenu();
   }, []);
 
-  const handleCategoryChange = (catName: string) => {
-    setSelectedCategory(catName);
-    if (catName === 'All Items') {
-      setFilteredItems(allItems);
-    } else {
-      const items = allItems.filter((item) => item.category === catName);
-      setFilteredItems(items);
-    }
-  };
-
-  return {
-    filteredItems,
-    categories,
-    selectedCategory,
-    handleCategoryChange,
-  };
+  return { items, categories, isLoading, error };
 }
