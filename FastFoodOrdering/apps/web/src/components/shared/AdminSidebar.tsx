@@ -13,7 +13,6 @@ const adminNavItems = [
   { label: 'Users', path: '/admin/users' },
   { label: 'Payments', path: '/admin/payments' },
   { label: 'Analytics', path: '/admin/analytics' },
-  { label: 'Roles', path: '/admin/roles' },
 ];
 
 export default function AdminSidebar() {

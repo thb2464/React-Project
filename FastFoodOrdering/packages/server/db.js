@@ -23,4 +23,5 @@ pool.connect((err) => {
 // Xuất ra một object có một phương thức query
 module.exports = {
   query: (text, params) => pool.query(text, params),
-};
+  pool: pool,
+}

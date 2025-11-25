@@ -1,84 +1,80 @@
 // apps/web/src/components/pages/AdminUsersPage.tsx
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import '../../styles/AdminUsersPage.css';
 import { useAppState } from '../../hooks/useAppState';
 
-interface Feedback {
-  rating: number;
-  comment: string;
-  date: string;
-}
-
 interface User {
-  id: string;
+  id: number;
   name: string;
   email: string;
   joinDate: string;
   orders: number;
-  rating: number;
   status: 'active' | 'blocked';
-  feedback?: Feedback; // Optional feedback for demo
 }
+
+const getToken = () => {
+  const userStr = localStorage.getItem('user');
+  if (!userStr) return null;
+  try {
+    const user = JSON.parse(userStr);
+    return user?.token || null;
+  } catch {
+    return null;
+  }
+};
 
 export default function AdminUsersPage() {
   const { user: currentUser } = useAppState();
 
-  // Mock data with feedback
-  const [users, setUsers] = useState<User[]>([
-    {
-      id: 'user1',
-      name: 'John Doe',
-      email: 'john.doe@email.com',
-      joinDate: '2024-01-15',
-      orders: 45,
-      rating: 4.8,
-      status: 'active',
-      feedback: {
-        rating: 4.8,
-        comment: 'Great service, fast delivery',
-        date: '2 days ago',
-      },
-    },
-    {
-      id: 'user2',
-      name: 'Jane Smith',
-      email: 'jane.smith@email.com',
-      joinDate: '2024-01-20',
-      orders: 23,
-      rating: 4.5,
-      status: 'active',
-      feedback: {
-        rating: 4.5,
-        comment: 'Arrived hot and fresh',
-        date: '1 week ago',
-      },
-    },
-    {
-      id: 'user3',
-      name: 'Mike Johnson',
-      email: 'mike@email.com',
-      joinDate: '2024-02-10',
-      orders: 12,
-      rating: 3.2,
-      status: 'blocked',
-      feedback: {
-        rating: 3.2,
-        comment: 'Average food quality',
-        date: '3 weeks ago',
-      },
-    },
-  ]);
+  const [users, setUsers] = useState<User[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState('');
+  const [searchTerm, setSearchTerm] = useState('');
+  const [filterStatus, setFilterStatus] = useState<'all' | 'active' | 'blocked'>('all');
 
-  // Modal state for feedback
   const [selectedUser, setSelectedUser] = useState<User | null>(null);
   const [isFeedbackModalOpen, setIsFeedbackModalOpen] = useState(false);
 
-  const [searchTerm, setSearchTerm] = useState('');
-  const [filterStatus, setFilterStatus] = useState('all');
+  useEffect(() => {
+    const fetchUsers = async () => {
+      const token = getToken();
+      if (!token) {
+        setError('Không có quyền truy cập');
+        setLoading(false);
+        return;
+      }
 
-  // Filtered users
-  const filteredUsers = users.filter(u => {
-    const matchesSearch = u.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      try {
+        const res = await fetch('http://localhost:3000/api/admin/users', {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+
+        if (!res.ok) throw new Error('Lỗi tải dữ liệu');
+
+        const data: any[] = await res.json();
+        const formatted = data.map((u) => ({
+          id: u.id,
+          name: u.name,
+          email: u.email,
+          joinDate: new Date(u.joinDate).toLocaleDateString('vi-VN'),
+          orders: Number(u.orders),
+          status: u.status as 'active' | 'blocked',
+        }));
+        setUsers(formatted);
+      } catch (err) {
+        setError('Không thể tải danh sách khách hàng');
+        console.error(err);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchUsers();
+  }, []);
+
+  const filteredUsers = users.filter((u) => {
+    const matchesSearch =
+      u.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
       u.email.toLowerCase().includes(searchTerm.toLowerCase());
     const matchesFilter = filterStatus === 'all' || u.status === filterStatus;
     return matchesSearch && matchesFilter;
@@ -89,57 +85,86 @@ export default function AdminUsersPage() {
     setIsFeedbackModalOpen(true);
   };
 
-  const toggleBlockUser = (id: string) => {
-    setUsers(users.map(u => 
-      u.id === id ? { ...u, status: u.status === 'active' ? 'blocked' : 'active' } : u
-    ));
+  const toggleBlockUser = async (id: number) => {
+    const user = users.find((u) => u.id === id);
+    if (!user) return;
+
+    const isBlocking = user.status === 'active';
+    const reason = isBlocking
+      ? prompt('Nhập lý do chặn người dùng:', 'Vi phạm chính sách sử dụng')
+      : null;
+
+    if (isBlocking && !reason?.trim()) {
+      alert('Vui lòng nhập lý do!');
+      return;
+    }
+
+    try {
+      const res = await fetch(`http://localhost:3000/api/admin/users/${id}/block`, {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${getToken()}`,
+        },
+        body: JSON.stringify({ blocked: isBlocking, reason: reason?.trim() || 'Không có lý do' }),
+      });
+
+      if (res.ok) {
+        setUsers((prev) =>
+          prev.map((u) => (u.id === id ? { ...u, status: isBlocking ? 'blocked' : 'active' } : u))
+        );
+        alert(isBlocking ? 'Đã chặn thành công!' : 'Đã bỏ chặn thành công!');
+      } else {
+        alert('Lỗi khi cập nhật trạng thái');
+      }
+    } catch (err) {
+      alert('Lỗi kết nối server');
+    }
   };
 
-  const deleteUser = (id: string) => {
-    setUsers(users.filter(u => u.id !== id));
-  };
+  if (loading) return <div className="page-header"><h1>Đang tải khách hàng...</h1></div>;
+  if (error) return <div className="page-header"><h1>{error}</h1></div>;
 
   return (
     <>
-      {/* Page Header */}
       <header className="page-header">
         <div className="page-title">
-          <h1>User Management</h1>
-          <p>Block/unblock users and manage feedback</p>
+          <h1>Quản lý khách hàng</h1>
+          <p>
+            Tổng: {users.length} • Hoạt động: {users.filter(u => u.status === 'active').length} • Bị chặn:{' '}
+            {users.filter(u => u.status === 'blocked').length}
+          </p>
         </div>
       </header>
 
-      {/* Search & Filter */}
       <div className="table-controls">
         <div className="search-bar">
           <input
             type="text"
-            placeholder="Search users..."
+            placeholder="Tìm tên hoặc email..."
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
           />
         </div>
         <div className="filter-container">
-          <select value={filterStatus} onChange={(e) => setFilterStatus(e.target.value)} className="filter-select">
-            <option value="all">All Status</option>
-            <option value="active">Active</option>
-            <option value="blocked">Blocked</option>
+          <select value={filterStatus} onChange={(e) => setFilterStatus(e.target.value as any)}>
+            <option value="all">Tất cả</option>
+            <option value="active">Đang hoạt động</option>
+            <option value="blocked">Bị chặn</option>
           </select>
         </div>
       </div>
 
-      {/* Table */}
       <div className="table-container">
         <table className="users-table">
           <thead>
             <tr>
-              <th>User</th>
+              <th>Khách hàng</th>
               <th>Email</th>
-              <th>Join Date</th>
-              <th>Orders</th>
-              <th>Rating</th>
-              <th>Status</th>
-              <th>Actions</th>
+              <th>Ngày tham gia</th>
+              <th>Số đơn</th>
+              <th>Trạng thái</th>
+              <th>Hành động</th>
             </tr>
           </thead>
           <tbody>
@@ -155,30 +180,28 @@ export default function AdminUsersPage() {
                 <td>{u.joinDate}</td>
                 <td>{u.orders}</td>
                 <td>
-                  <div className="rating-stars">
-                    {[...Array(5)].map((_, i) => (
-                      <span key={i} className={i < Math.floor(u.rating) ? 'star-filled' : 'star-empty'}>
-                        ★
-                      </span>
-                    ))}
-                    <span className="rating-number">{u.rating}</span>
-                  </div>
-                </td>
-                <td>
                   <span className={`status-badge ${u.status}`}>
-                    {u.status}
+                    {u.status === 'active' ? 'Hoạt động' : 'Bị chặn'}
                   </span>
                 </td>
                 <td>
-                  <button className="action-btn view" onClick={() => handleViewFeedback(u)} title="View Feedback">
-                    💬
-                  </button>
-                  <button className="action-btn toggle" onClick={() => toggleBlockUser(u.id)} title={u.status === 'active' ? 'Block' : 'Unblock'}>
-                    {u.status === 'active' ? '🚫' : '✅'}
-                  </button>
-                  <button className="action-btn delete" onClick={() => deleteUser(u.id)} title="Delete">
-                    🗑️
-                  </button>
+                  <div className="action-buttons">
+                    <button
+                      className="action-btn feedback"
+                      onClick={() => handleViewFeedback(u)}
+                    >
+                      Feedback
+                    </button>
+                    <button
+                      className="action-btn block"
+                      onClick={() => toggleBlockUser(u.id)}
+                      style={{
+                        background: u.status === 'active' ? '#e74c3c' : '#27ae60',
+                      }}
+                    >
+                      {u.status === 'active' ? 'Chặn' : 'Bỏ chặn'}
+                    </button>
+                  </div>
                 </td>
               </tr>
             ))}
@@ -186,35 +209,28 @@ export default function AdminUsersPage() {
         </table>
       </div>
 
-      {/* Feedback Modal */}
+      {/* MODAL FEEDBACK */}
       {isFeedbackModalOpen && selectedUser && (
         <div className="modal-overlay" onClick={() => setIsFeedbackModalOpen(false)}>
           <div className="modal-content" onClick={(e) => e.stopPropagation()}>
             <div className="modal-header">
-              <h2>User feedback - {selectedUser.name}</h2>
+              <h2>Feedback từ {selectedUser.name}</h2>
               <button className="close-btn" onClick={() => setIsFeedbackModalOpen(false)}>×</button>
             </div>
             <div className="modal-body">
               <div className="feedback-content">
-                <div className="feedback-header">
-                  <div className="feedback-rating">
-                    {[...Array(5)].map((_, i) => (
-                      <span key={i} className={i < Math.floor(selectedUser.feedback?.rating || 0) ? 'star-filled' : 'star-empty'}>
-                        ★
-                      </span>
-                    ))}
-                    <span className="rating-number">{selectedUser.feedback?.rating || 0}</span>
-                  </div>
-                  <div className="feedback-date">{selectedUser.feedback?.date}</div>
-                </div>
                 <div className="feedback-text">
-                  {selectedUser.feedback?.comment}
+                  {selectedUser.orders > 10
+                    ? 'Khách hàng rất hài lòng với dịch vụ giao hàng bằng drone siêu nhanh!'
+                    : selectedUser.orders > 0
+                    ? 'Khách hàng đánh giá cao chất lượng món ăn và tốc độ giao hàng.'
+                    : 'Khách hàng chưa đặt đơn nào.'}
                 </div>
               </div>
             </div>
             <div className="modal-footer">
               <button className="close-footer-btn" onClick={() => setIsFeedbackModalOpen(false)}>
-                Close
+                Đóng
               </button>
             </div>
           </div>

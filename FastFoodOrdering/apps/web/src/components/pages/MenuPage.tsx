@@ -44,7 +44,7 @@ function MenuPage() {
     originalPrice: dbItem.original_price || dbItem.price, // nếu có cột giảm giá thật thì dùng
     description: dbItem.description || 'Món ngon khó cưỡng',
     tags: dbItem.category ? [dbItem.category] : ['Khác'],
-    rating: dbItem.rating || 4.3 + Math.random() * 0.7,
+    rating: dbItem.rating || Number((4.3 + Math.random() * 0.7).toFixed(1)),
     time: '20-35 phút',
     calories: Math.floor(Math.random() * 350) + 200,
     isPopular: dbItem.is_popular || Math.random() > 0.5,

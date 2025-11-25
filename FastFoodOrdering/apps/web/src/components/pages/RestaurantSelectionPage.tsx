@@ -22,7 +22,6 @@ function RestaurantSelectionPage() {
   const [loading, setLoading] = useState(true);
   const [statusMessage, setStatusMessage] = useState('Đang tìm nhà hàng gần bạn...');
 
-  // Load ALL restaurants (safe fallback)
   const loadAllRestaurants = async () => {
     try {
       const data = await getAllRestaurants();
@@ -37,7 +36,6 @@ function RestaurantSelectionPage() {
     }
   };
 
-  // Try GPS → nearby
   const detectLocation = () => {
     if (!navigator.geolocation) {
       setStatusMessage('Trình duyệt không hỗ trợ định vị. Hiển thị tất cả nhà hàng.');
@@ -83,13 +81,17 @@ function RestaurantSelectionPage() {
     detectLocation();
   }, []);
 
+  // HÀNH ĐỘNG KHI CHỌN NHÀ HÀNG → VÀO MENU CHUNG LUÔN!
+  const handleSelectRestaurant = () => {
+    navigate('/menu'); // → Luôn vào menu chung, không cần ID
+  };
+
   return (
     <div className="restaurant-selection-page">
       <div className="header">
         <h1>Chọn nhà hàng giao đến bạn</h1>
         <p className="subtitle">{statusMessage}</p>
 
-        {/* Only show retry button if failed */}
         {!loading && restaurants.length === 0 && (
           <button className="retry-btn" onClick={detectLocation}>
             Thử lại
@@ -113,7 +115,7 @@ function RestaurantSelectionPage() {
             <div
               key={restaurant.restaurant_id}
               className="restaurant-card"
-              onClick={() => navigate(`/menu/${restaurant.restaurant_id}`)}
+              onClick={handleSelectRestaurant} // ← Click toàn card → vào menu
             >
               <div className="card-image">
                 <div className="placeholder-image">
@@ -136,10 +138,13 @@ function RestaurantSelectionPage() {
                   </span>
                 </div>
 
-                <button className="select-btn" onClick={(e) => {
-                  e.stopPropagation();
-                  navigate(`/menu/${restaurant.restaurant_id}`);
-                }}>
+                <button 
+                  className="select-btn" 
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    handleSelectRestaurant();
+                  }}
+                >
                   Chọn nhà hàng này
                 </button>
               </div>
@@ -148,7 +153,6 @@ function RestaurantSelectionPage() {
         </div>
       )}
 
-      {/* Show "View All" only if we used GPS and found some */}
       {!loading && statusMessage.includes('Tìm thấy') && (
         <div className="all-restaurants-footer">
           <button className="show-all-btn" onClick={loadAllRestaurants}>
