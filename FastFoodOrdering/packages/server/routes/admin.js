@@ -363,6 +363,43 @@ router.get('/restaurants', authenticateToken, requireAdmin, async (req, res) => 
   }
 });
 
+router.delete('/restaurants/:id', authenticateToken, requireAdmin, async (req, res) => {
+  const { id } = req.params;
+
+  try {
+    const check = await db.query('SELECT name FROM restaurants WHERE restaurant_id = $1', [id]);
+    if (check.rows.length === 0) {
+      return res.status(404).json({ error: 'Nhà hàng không tồn tại' });
+    }
+
+    // Kiểm tra đơn hàng đang hoạt động
+    const activeOrders = await db.query(`
+      SELECT order_id FROM orders 
+      WHERE restaurant_id = $1 
+      AND status NOT IN ('delivered', 'cancelled')
+    `, [id]);
+
+    if (activeOrders.rows.length > 0) {
+      return res.status(400).json({ 
+        error: 'Không thể xóa vì đang có đơn hàng đang xử lý',
+        active_orders: activeOrders.rows.length
+      });
+    }
+
+    // XÓA CỨNG
+    await db.query('DELETE FROM restaurants WHERE restaurant_id = $1', [id]);
+
+    res.json({ 
+      message: 'Xóa nhà hàng thành công (hard delete)',
+      restaurant_id: Number(id)
+    });
+
+  } catch (err) {
+    console.error('Lỗi xóa nhà hàng:', err);
+    res.status(500).json({ error: 'Lỗi server' });
+  }
+});
+
 // Thêm chi nhánh mới
 router.post('/restaurants', authenticateToken, requireAdmin, async (req, res) => {
   const { name, phone, address, lat, lng, radius_km = 8.0 } = req.body;

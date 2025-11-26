@@ -6,7 +6,7 @@ export const setApiBaseUrl = (url: string) => {
 
 export const apiClient = async (
   endpoint: string,
-  method: 'GET' | 'POST' | 'PUT' | 'DELETE' = 'GET',
+  method: 'GET' | 'POST' | 'PUT' | 'DELETE' | 'PATCH' = 'GET',
   body: any = null,
   token: string | null = null
 ) => {
@@ -31,9 +31,16 @@ export const apiClient = async (
 
   try {
     const response = await fetch(`${API_BASE_URL}${endpoint}`, config);
-    
     const text = await response.text();
-    const data = text ? JSON.parse(text) : {};
+    
+    let data;
+    try {
+      data = text ? JSON.parse(text) : {};
+    } catch (parseError) {
+      // FIX: Log the raw text if JSON fails. This catches the HTML error.
+      console.error(`[API Error] ${method} ${endpoint} returned non-JSON:`, text.substring(0, 200)); 
+      throw new Error('Server returned invalid data (likely HTML error page)');
+    }
     
     if (!response.ok) {
       throw new Error(data.error || data.message || 'API request failed');

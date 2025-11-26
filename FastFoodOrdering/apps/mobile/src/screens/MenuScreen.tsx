@@ -1,49 +1,68 @@
-import React from 'react';
+import React, { useState } from 'react';
 import {
   StyleSheet,
   View,
   Text,
   FlatList,
   TouchableOpacity,
+  ActivityIndicator,
 } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import { useMenu } from '@fastfoodordering/hooks';
-import { Category } from '@fastfoodordering/types';
 import MenuItemCard from '../components/shared/MenuItemCard';
 import { MenuScreenNavigationProp } from '../navigation/types';
 
 function MenuScreen() {
-  const {
-    filteredItems,
-    categories,
-    selectedCategory,
-    handleCategoryChange,
-  } = useMenu();
+  const { items, categories, isLoading, error } = useMenu();
   const navigation = useNavigation<MenuScreenNavigationProp>();
+  
+  const [selectedCategory, setSelectedCategory] = useState('All');
+
+  // Filter items based on selection
+  const filteredItems = items.filter((item) => {
+    if (selectedCategory === 'All') return true;
+    return item.category === selectedCategory;
+  });
+
+  if (isLoading) {
+    return (
+      <View style={styles.center}>
+        <ActivityIndicator size="large" color="#000" />
+      </View>
+    );
+  }
+
+  if (error) {
+    return (
+      <View style={styles.center}>
+        <Text style={{ color: 'red' }}>Error loading menu.</Text>
+      </View>
+    );
+  }
 
   return (
     <View style={styles.container}>
       <View>
         <FlatList
-          data={categories as Category[]}
+          data={categories}
           horizontal={true}
           showsHorizontalScrollIndicator={false}
-          keyExtractor={(item) => item.name}
+          keyExtractor={(item) => item}
           renderItem={({ item }) => (
             <TouchableOpacity
               style={[
                 styles.categoryButton,
-                selectedCategory === item.name && styles.categoryButtonActive,
+                selectedCategory === item && styles.categoryButtonActive,
               ]}
-              onPress={() => handleCategoryChange(item.name)}
+              onPress={() => setSelectedCategory(item)}
             >
               <Text
                 style={[
                   styles.categoryText,
-                  selectedCategory === item.name && styles.categoryTextActive,
+                  selectedCategory === item && styles.categoryTextActive,
                 ]}
               >
-                {item.name}
+                {item}
               </Text>
             </TouchableOpacity>
           )}
@@ -74,6 +93,11 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: '#f4f4f4',
+  },
+  center: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   categoryListContainer: {
     paddingVertical: 10,

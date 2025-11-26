@@ -21,6 +21,10 @@ export default function AdminRestaurants() {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingRestaurant, setEditingRestaurant] = useState<Restaurant | null>(null);
 
+  // Modal xóa
+  const [deleteModalOpen, setDeleteModalOpen] = useState(false);
+  const [restaurantToDelete, setRestaurantToDelete] = useState<Restaurant | null>(null);
+
   const [formData, setFormData] = useState({
     name: '',
     phone: '',
@@ -30,7 +34,6 @@ export default function AdminRestaurants() {
 
   const [searchTerm, setSearchTerm] = useState('');
 
-  // Load tất cả chi nhánh
   useEffect(() => {
     const fetchRestaurants = async () => {
       try {
@@ -53,14 +56,12 @@ export default function AdminRestaurants() {
     (r.phone && r.phone.includes(searchTerm))
   );
 
-  // Mở modal thêm mới
   const openAddModal = () => {
     setEditingRestaurant(null);
     setFormData({ name: '', phone: '', address: '', radius_km: '8.0' });
     setIsModalOpen(true);
   };
 
-  // Mở modal chỉnh sửa
   const openEditModal = (restaurant: Restaurant) => {
     setEditingRestaurant(restaurant);
     setFormData({
@@ -72,7 +73,28 @@ export default function AdminRestaurants() {
     setIsModalOpen(true);
   };
 
-  // Bật/tắt hiển thị
+  // Mở modal xác nhận xóa
+  const openDeleteModal = (restaurant: Restaurant) => {
+    setRestaurantToDelete(restaurant);
+    setDeleteModalOpen(true);
+  };
+
+  // Xác nhận xóa
+  const confirmDelete = async () => {
+    if (!restaurantToDelete) return;
+
+    try {
+      await api.delete(`/admin/restaurants/${restaurantToDelete.restaurant_id}`);
+      setRestaurants(prev => prev.filter(r => r.restaurant_id !== restaurantToDelete.restaurant_id));
+      setDeleteModalOpen(false);
+      setRestaurantToDelete(null);
+      alert(`Đã xóa chi nhánh "${restaurantToDelete.name}" thành công!`);
+    } catch (err: any) {
+      const msg = err.response?.data?.error || 'Không thể xóa chi nhánh (có thể đang có đơn hàng)';
+      alert('Lỗi: ' + msg);
+    }
+  };
+
   const toggleVisible = async (id: number) => {
     const restaurant = restaurants.find(r => r.restaurant_id === id);
     if (!restaurant) return;
@@ -87,7 +109,6 @@ export default function AdminRestaurants() {
     }
   };
 
-  // Lưu (Thêm hoặc Sửa)
   const handleSave = async () => {
     if (!formData.name || !formData.address) {
       alert('Vui lòng nhập tên và địa chỉ');
@@ -96,7 +117,6 @@ export default function AdminRestaurants() {
 
     try {
       if (editingRestaurant) {
-        // Cập nhật
         const res = await api.put(`/admin/restaurants/${editingRestaurant.restaurant_id}`, {
           name: formData.name,
           phone: formData.phone || null,
@@ -107,7 +127,6 @@ export default function AdminRestaurants() {
           prev.map(r => r.restaurant_id === editingRestaurant.restaurant_id ? res.data : r)
         );
       } else {
-        // Thêm mới
         const res = await api.post('/admin/restaurants', {
           name: formData.name,
           phone: formData.phone || null,
@@ -116,7 +135,6 @@ export default function AdminRestaurants() {
         });
         setRestaurants([...restaurants, res.data]);
       }
-
       setIsModalOpen(false);
     } catch (err: any) {
       alert(err.response?.data?.error || 'Lỗi lưu thông tin');
@@ -158,7 +176,7 @@ export default function AdminRestaurants() {
               <th>Bán kính (km)</th>
               <th>Trạng thái</th>
               <th>Hiển thị</th>
-              <th>Chỉnh sửa</th>
+              <th>Hành động</th>
             </tr>
           </thead>
           <tbody>
@@ -189,13 +207,22 @@ export default function AdminRestaurants() {
                   </label>
                 </td>
                 <td>
-                  <button
-                    className="action-btn edit"
-                    onClick={() => openEditModal(r)}
-                    title="Chỉnh sửa"
-                  >
-                    Edit
-                  </button>
+                  <div className="action-buttons">
+                    <button
+                      className="action-btn edit"
+                      onClick={() => openEditModal(r)}
+                      title="Chỉnh sửa"
+                    >
+                      Edit
+                    </button>
+                    <button
+                      className="action-btn delete"
+                      onClick={() => openDeleteModal(r)}
+                      title="Xóa chi nhánh"
+                    >
+                      Delete
+                    </button>
+                  </div>
                 </td>
               </tr>
             ))}
@@ -242,6 +269,36 @@ export default function AdminRestaurants() {
               <button className="cancel-btn" onClick={() => setIsModalOpen(false)}>Hủy</button>
               <button className="add-rest-btn" onClick={handleSave}>
                 {editingRestaurant ? 'Cập nhật' : 'Thêm chi nhánh'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Modal xác nhận xóa */}
+      {deleteModalOpen && restaurantToDelete && (
+        <div className="modal-overlay" onClick={() => setDeleteModalOpen(false)}>
+          <div className="modal-content delete-modal" onClick={e => e.stopPropagation()}>
+            <div className="modal-header delete">
+              <h2>Xóa chi nhánh?</h2>
+              <button className="close-btn" onClick={() => setDeleteModalOpen(false)}>×</button>
+            </div>
+            <div className="modal-body">
+              <p>Bạn có chắc chắn muốn <strong>xóa vĩnh viễn</strong> chi nhánh sau không?</p>
+              <div className="delete-info">
+                <strong>{restaurantToDelete.name}</strong><br/>
+                <small>{restaurantToDelete.address}</small>
+              </div>
+              <p className="warning">
+                <strong>Cảnh báo:</strong> Hành động này không thể hoàn tác. Tất cả món ăn và đơn hàng liên quan có thể bị ảnh hưởng.
+              </p>
+            </div>
+            <div className="modal-footer">
+              <button className="cancel-btn" onClick={() => setDeleteModalOpen(false)}>
+                Hủy bỏ
+              </button>
+              <button className="delete-confirm-btn" onClick={confirmDelete}>
+                Delete Xóa vĩnh viễn
               </button>
             </div>
           </div>
