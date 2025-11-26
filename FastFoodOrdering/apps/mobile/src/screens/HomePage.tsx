@@ -153,8 +153,6 @@ export default function HomePage() {
     <View style={styles.container}>
       
       <View style={styles.header}>
-        
-        {/* Cart Button */}
         <TouchableOpacity style={styles.headerIconBtn} onPress={() => navigation.navigate('Checkout')}>
             <Ionicons name="cart-outline" size={30} color="#333" />
             {cartCount > 0 && (
