@@ -136,7 +136,7 @@ export default function AdminDashboard() {
               <div key={d.drone_id} className="drone-row">
                 <div>
                   <strong>{d.name || `Drone ${d.drone_id}`}</strong>
-                  <div className="location">{d.restaurant_name}</div>
+                  <div className="location">{d.status}</div>
                 </div>
                 <div className="battery">
                   <div className="battery-bar" style={{ width: `${d.battery}%`, backgroundColor: d.battery > 70 ? '#10b981' : d.battery > 40 ? '#f59e0b' : '#ef4444' }} />

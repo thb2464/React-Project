@@ -83,7 +83,6 @@ function HomePage() {
   ];
 
   return (
-    // This JSX (HTML part) stays exactly the same
     <>
       {/* HERO - giữ nguyên template */}
       <section className="hero">

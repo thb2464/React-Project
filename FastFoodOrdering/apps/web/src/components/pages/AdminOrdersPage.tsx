@@ -1,10 +1,9 @@
-import React, { useState, useEffect, useCallback } from 'react';
-import { useAppState } from '@fastfoodordering/store';
-import { apiClient } from '@fastfoodordering/utils';
-import { Order as BaseOrder, OrderStatus } from '@fastfoodordering/types';
+import React, { useState, useEffect } from 'react';
 import '../../styles/AdminOrdersPage.css';
 
-interface AdminOrder extends Omit<BaseOrder, 'items'> {
+interface OrderItem { name: string; quantity: number; unit_price: number; }
+interface Drone { drone_id: number; name: string; battery: number; }
+interface Order {
   order_id: number;
   full_name: string;
   restaurant_name: string;
@@ -12,151 +11,135 @@ interface AdminOrder extends Omit<BaseOrder, 'items'> {
   total: number;
   drone_name: string | null;
   drone_id?: number;
-  status: OrderStatus;
+  status: 'pending' | 'confirmed' | 'preparing' | 'out_for_delivery' | 'delivered' | 'cancelled';
   delivery_address: string;
   note?: string | null;
   created_at: string;
-  
-  items: Array<{ 
-    name: string; 
-    quantity: number; 
-    unit_price: number; 
-  }>;
+  items: OrderItem[];
 }
 
-interface Drone {
-  drone_id: number;
-  name: string;
-  battery: number;
-}
+const getToken = () => {
+  const userStr = localStorage.getItem('user');
+  if (!userStr) return null;
+  try { return JSON.parse(userStr)?.token || null; } catch { return null; }
+};
 
 export default function AdminOrdersPage() {
-  // 1. Use the Shared Store for Token
-  const { token } = useAppState();
-  
-  const [orders, setOrders] = useState<AdminOrder[]>([]);
+  const [token, setToken] = useState<string | null>(null);
+  const [orders, setOrders] = useState<Order[]>([]);
   const [loading, setLoading] = useState(true);
-  const [selectedOrder, setSelectedOrder] = useState<AdminOrder | null>(null);
+  const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
-  const [filterStatus, setFilterStatus] = useState<'all' | OrderStatus>('all');
+  const [filterStatus, setFilterStatus] = useState<'all' | Order['status']>('all');
   const [availableDrones, setAvailableDrones] = useState<Drone[]>([]);
 
-  // 2. Fetch Orders using apiClient
-  const fetchOrders = useCallback(async () => {
+  useEffect(() => { setToken(getToken()); }, []);
+
+  const fetchOrders = async () => {
     if (!token) return;
     try {
-      // apiClient handles Base URL and Auth Headers automatically
-      const data = await apiClient('/admin/all-orders', 'GET', null, token);
-      
-      // Normalize data if necessary (ensure numbers are numbers)
-      const normalized: AdminOrder[] = data.map((o: any) => ({
-        ...o,
+      const res = await fetch('http://localhost:3000/api/admin/all-orders', {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      if (!res.ok) throw new Error('Lỗi tải');
+      const data: any[] = await res.json();
+      const normalized: Order[] = data.map(o => ({
+        order_id: o.order_id,
+        full_name: o.full_name || 'Khách vãng lai',
+        restaurant_name: o.restaurant_name,
+        restaurant_id: o.restaurant_id,
         total: Number(o.total) || 0,
-        status: o.status as OrderStatus,
+        drone_name: o.drone_name || null,
+        drone_id: o.drone_id,
+        status: (o.status || 'pending') as Order['status'],
+        delivery_address: o.delivery_address || '',
+        note: o.note,
+        created_at: o.created_at,
         items: Array.isArray(o.items) ? o.items : [],
       }));
-      
       setOrders(normalized);
-    } catch (err) {
-      console.error('Error fetching admin orders:', err);
-    } finally {
-      setLoading(false);
-    }
-  }, [token]);
+    } catch (err) { console.error(err); } finally { setLoading(false); }
+  };
 
-  // Polling Effect
+  // Polling để tự động cập nhật trạng thái khi khách nhận hàng
   useEffect(() => {
     if (token) {
       fetchOrders();
-      const interval = setInterval(fetchOrders, 5000); // Poll every 5s
+      const interval = setInterval(fetchOrders, 5000); // 5s check một lần
       return () => clearInterval(interval);
     }
-  }, [token, fetchOrders]);
+  }, [token]);
 
   const loadDrones = async (restaurantId: number) => {
-    try {
-      const data = await apiClient(`/admin/drones/available/${restaurantId}`, 'GET', null, token);
-      setAvailableDrones(data);
-    } catch (err) {
-      console.error('Error loading drones:', err);
-    }
+    const res = await fetch(`http://localhost:3000/api/admin/drones/available/${restaurantId}`, {
+      headers: { Authorization: `Bearer ${token}` },
+    });
+    if (res.ok) setAvailableDrones(await res.json());
   };
 
   const confirmOrder = async () => {
     if (!selectedOrder) return;
-    try {
-      await apiClient(`/admin/orders/${selectedOrder.order_id}/confirm`, 'PATCH', null, token);
-      fetchOrders();
-      setIsModalOpen(false);
-    } catch (err) {
-      alert('Failed to confirm order');
-    }
+    await fetch(`http://localhost:3000/api/admin/orders/${selectedOrder.order_id}/confirm`, {
+      method: 'PATCH',
+      headers: { Authorization: `Bearer ${token}` },
+    });
+    fetchOrders();
+    setIsModalOpen(false);
   };
 
   const assignDrone = async (droneId: number) => {
     if (!selectedOrder || !droneId) return;
     try {
-      const data = await apiClient(`/admin/orders/${selectedOrder.order_id}/assign-drone`, 'PATCH', { drone_id: droneId }, token);
-      alert('Drone Assigned: ' + (data.drone_name || 'Success'));
-      fetchOrders();
-      setIsModalOpen(false);
-    } catch (err: any) {
-      alert('Error: ' + (err.message || 'Unknown error'));
-    }
+      const res = await fetch(`http://localhost:3000/api/admin/orders/${selectedOrder.order_id}/assign-drone`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+        body: JSON.stringify({ drone_id: droneId }),
+      });
+      const data = await res.json();
+      if (res.ok) {
+        alert('Gán drone thành công: ' + (data.drone_name));
+        fetchOrders();
+        setIsModalOpen(false);
+      } else {
+        alert('Lỗi: ' + (data.message || 'Không xác định'));
+      }
+    } catch (err) { console.error(err); }
   };
 
-  const handleViewDetails = (order: AdminOrder) => {
+  const handleViewDetails = (order: Order) => {
     setSelectedOrder(order);
     setAvailableDrones([]);
-    if (order.status === 'confirmed') {
-        loadDrones(order.restaurant_id);
-    }
+    if (order.status === 'confirmed') loadDrones(order.restaurant_id);
     setIsModalOpen(true);
   };
 
   const filteredOrders = orders.filter(o => {
     const s = searchTerm.toLowerCase();
-    const matchSearch = 
-      o.order_id.toString().includes(s) || 
-      o.full_name?.toLowerCase().includes(s) || 
-      o.restaurant_name?.toLowerCase().includes(s);
-    const matchStatus = filterStatus === 'all' || o.status === filterStatus;
-    
-    return matchSearch && matchStatus;
+    return (o.order_id.toString().includes(s) || o.full_name.toLowerCase().includes(s) || o.restaurant_name.toLowerCase().includes(s)) &&
+           (filterStatus === 'all' || o.status === filterStatus);
   });
 
-  const statusCounts = orders.reduce((acc: any, o) => {
-    acc[o.status] = (acc[o.status] || 0) + 1;
-    return acc;
-  }, {});
-
+  const statusCounts = orders.reduce((a, o) => { a[o.status] = (a[o.status] || 0) + 1; return a; }, {} as any);
   const formatPrice = (n: number) => new Intl.NumberFormat('vi-VN').format(n) + 'đ';
 
-  if (!token) return <div className="p-4">Please log in as Admin.</div>;
-  if (loading) return <div className="p-4">Loading Orders...</div>;
+  if (loading) return <h1>Đang tải...</h1>;
+  if (!token) return <h1>Đăng nhập admin để xem!</h1>;
 
   return (
     <>
-      <header className="page-header"><h1>Admin Dashboard</h1></header>
-      
-      {/* Status Tabs */}
+      <header className="page-header"><h1>Quản lý đơn hàng</h1></header>
       <div className="status-tabs">
         <div className="tab">Pending <span className="tab-count">{statusCounts.pending || 0}</span></div>
         <div className="tab">Confirmed <span className="tab-count">{statusCounts.confirmed || 0}</span></div>
-        <div className="tab">Delivering <span className="tab-count">{statusCounts.out_for_delivery || 0}</span></div>
-        <div className="tab success">Completed <span className="tab-count">{statusCounts.delivered || 0}</span></div>
+        <div className="tab">Drone Delivery <span className="tab-count">{statusCounts.out_for_delivery || 0}</span></div>
+        <div className="tab" style={{color:'#10b981'}}>Completed <span className="tab-count">{statusCounts.delivered || 0}</span></div>
       </div>
 
-      {/* Controls */}
       <div className="table-controls">
-        <input 
-            placeholder="Search Order ID, Customer..." 
-            value={searchTerm} 
-            onChange={e => setSearchTerm(e.target.value)} 
-        />
+        <input placeholder="Tìm kiếm..." value={searchTerm} onChange={e => setSearchTerm(e.target.value)} />
         <select value={filterStatus} onChange={e => setFilterStatus(e.target.value as any)}>
-          <option value="all">All Status</option>
+          <option value="all">Tất cả trạng thái</option>
           <option value="pending">Pending</option>
           <option value="confirmed">Confirmed</option>
           <option value="out_for_delivery">Drone Delivery</option>
@@ -164,19 +147,8 @@ export default function AdminOrdersPage() {
         </select>
       </div>
 
-      {/* Orders Table */}
       <table className="orders-table">
-        <thead>
-            <tr>
-                <th>ID</th>
-                <th>Customer</th>
-                <th>Restaurant</th>
-                <th>Total</th>
-                <th>Drone</th>
-                <th>Status</th>
-                <th>Action</th>
-            </tr>
-        </thead>
+        <thead><tr><th>ID</th><th>Khách</th><th>Nhà hàng</th><th>Tổng</th><th>Drone</th><th>Trạng thái</th><th></th></tr></thead>
         <tbody>
           {filteredOrders.map(o => (
             <tr key={o.order_id}>
@@ -184,83 +156,145 @@ export default function AdminOrdersPage() {
               <td>{o.full_name}</td>
               <td>{o.restaurant_name}</td>
               <td>{formatPrice(o.total)}</td>
-              <td>{o.drone_name || (o.drone_id ? `ID: ${o.drone_id}` : '-')}</td>
+              <td>{o.drone_name || (o.drone_id ? `Drone #${o.drone_id}` : '-')}</td>
               <td>
-                <span className={`status-badge ${o.status}`}>
+                <span className="status-badge" style={{
+                  background: o.status === 'pending' ? '#f59e0b' :
+                              o.status === 'confirmed' ? '#3b82f6' :
+                              o.status === 'out_for_delivery' ? '#06b6d4' : '#10b981'
+                }}>
                   {o.status}
                 </span>
               </td>
-              <td><button onClick={() => handleViewDetails(o)}>Details</button></td>
+              <td><button onClick={() => handleViewDetails(o)}>Chi tiết</button></td>
             </tr>
           ))}
         </tbody>
       </table>
 
-      {/* Detail Modal */}
       {isModalOpen && selectedOrder && (
         <div className="modal-overlay" onClick={() => setIsModalOpen(false)}>
           <div className="modal-content" onClick={e => e.stopPropagation()}>
             <div className="modal-header">
-              <h2>Order #{selectedOrder.order_id}</h2>
-              <span className={`status-badge big ${selectedOrder.status}`}>
-                {selectedOrder.status}
-              </span>
+              <div>
+                <h2>Đơn hàng #{selectedOrder.order_id}</h2>
+                <p className="order-time">
+                  {new Date(selectedOrder.created_at).toLocaleString('vi-VN', {
+                    weekday: 'long',
+                    day: '2-digit',
+                    month: '2-digit',
+                    year: 'numeric',
+                    hour: '2-digit',
+                    minute: '2-digit'
+                  })}
+                </p>
+              </div>
+              <div className={`status-badge big ${selectedOrder.status}`}>
+                {selectedOrder.status === 'pending' ? 'Chờ xác nhận' :
+                 selectedOrder.status === 'confirmed' ? 'Đã xác nhận' :
+                 selectedOrder.status === 'out_for_delivery' ? 'Đang giao' :
+                 selectedOrder.status === 'delivered' ? 'Đã giao thành công' : selectedOrder.status}
+              </div>
             </div>
 
             <div className="info-grid">
               <div className="info-card">
-                  <div className="info-label">Customer</div>
+                
+                <div>
+                  <div className="info-label">Khách hàng</div>
                   <div className="info-value">{selectedOrder.full_name}</div>
+                </div>
               </div>
               <div className="info-card">
-                  <div className="info-label">Restaurant</div>
+                
+                <div>
+                  <div className="info-label">Nhà hàng</div>
                   <div className="info-value">{selectedOrder.restaurant_name}</div>
+                </div>
               </div>
               <div className="info-card">
-                  <div className="info-label">Address</div>
+                
+                <div>
+                  <div className="info-label">Địa chỉ giao hàng</div>
                   <div className="info-value">{selectedOrder.delivery_address}</div>
+                </div>
               </div>
+              {selectedOrder.drone_name && (
+                <div className="info-card success">
+                  
+                  <div>
+                    <div className="info-label">Drone đang giao</div>
+                    <div className="info-value">{selectedOrder.drone_name}</div>
+                  </div>
+                </div>
+              )}
             </div>
 
             <div className="items-section">
-              <h3>Items ({selectedOrder.items.length})</h3>
+              <h3>Món đã đặt ({selectedOrder.items.length})</h3>
               <div className="items-list">
                 {selectedOrder.items.map((item, i) => (
                   <div className="item-row" key={i}>
-                    <span>{item.quantity}x {item.name}</span>
-                    <span>{formatPrice(item.unit_price * item.quantity)}</span>
+                    <div className="item-name">
+                      <span className="quantity">{item.quantity}×</span>
+                      {item.name}
+                    </div>
+                    <div className="item-price">
+                      {new Intl.NumberFormat('vi-VN').format(item.quantity * item.unit_price)}₫
+                    </div>
                   </div>
                 ))}
               </div>
               <div className="total-row">
-                <strong>Total</strong>
-                <strong>{formatPrice(selectedOrder.total)}</strong>
+                <strong>Tổng cộng</strong>
+                <strong className="total-amount">
+                  {new Intl.NumberFormat('vi-VN').format(selectedOrder.total)}₫
+                </strong>
               </div>
             </div>
 
+            {selectedOrder.note && (
+              <div className="note-section">
+                <div className="note-icon">Note</div>
+                <em>“{selectedOrder.note}”</em>
+              </div>
+            )}
+
             <div className="modal-actions">
               {selectedOrder.status === 'pending' && (
-                <button className="btn-primary" onClick={confirmOrder}>Confirm Order</button>
+                <button className="btn-primary" onClick={confirmOrder}>
+                  Xác nhận đơn hàng
+                </button>
               )}
 
-              {selectedOrder.status === 'confirmed' && (
+              {selectedOrder.status === 'confirmed' && availableDrones.length > 0 && (
                 <div className="drone-select-wrapper">
-                    {availableDrones.length > 0 ? (
-                        <select onChange={e => assignDrone(Number(e.target.value))} defaultValue="" className="drone-select">
-                            <option value="" disabled>Select Drone</option>
-                            {availableDrones.map(d => (
-                            <option key={d.drone_id} value={d.drone_id}>
-                                {d.name} ({d.battery}%)
-                            </option>
-                            ))}
-                        </select>
-                    ) : (
-                        <span>No Drones Available at this Restaurant</span>
-                    )}
+                  <select onChange={e => assignDrone(Number(e.target.value))} defaultValue="" className="drone-select">
+                    <option value="" disabled>Chọn Drone giao hàng</option>
+                    {availableDrones.map(d => (
+                      <option key={d.drone_id} value={d.drone_id}>
+                        {d.name} — Pin: {d.battery}%
+                      </option>
+                    ))}
+                  </select>
                 </div>
               )}
-              
-              <button className="btn-secondary" onClick={() => setIsModalOpen(false)}>Close</button>
+
+              {selectedOrder.status === 'out_for_delivery' && (
+                <div className="success-message">
+                  Drone đang trên đường giao hàng...
+                </div>
+              )}
+
+              {selectedOrder.status === 'delivered' && (
+                <div className="success-message">
+                  Đơn hàng đã được giao thành công!
+                </div>
+              )}
+
+              <button className="btn-secondary" onClick={() => setIsModalOpen(false)}>
+                Đóng
+              </button>
             </div>
           </div>
         </div>
