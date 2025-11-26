@@ -1,3 +1,4 @@
+// --- 1. Helper Interfaces (UI only) ---
 export interface Category {
   icon: string;
   name: string;

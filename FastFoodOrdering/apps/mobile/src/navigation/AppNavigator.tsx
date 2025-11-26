@@ -95,12 +95,14 @@ function CustomerTabs() {
   );
 }
 
+// --- ROOT: Decides which app to show ---
 function RootNavigator() {
   const { user } = useAppState();
   if (!user) return <AuthScreen />;
   return <CustomerTabs />;
 }
 
+// --- Main export ---
 export default function AppNavigator() {
   return (
     <NavigationContainer>
