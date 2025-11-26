@@ -1,14 +1,17 @@
 // apps/web/src/services/api.ts
 import axios from 'axios';
 
-const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000/api';
-const SERVER_BASE_URL = import.meta.env.VITE_SERVER_URL || 'http://localhost:3000';
+const API_BASE_URL = import.meta.env.VITE_API_URL || 'https://chiasmal-puffingly-etsuko.ngrok-free.dev/api';
+const SERVER_BASE_URL = import.meta.env.VITE_SERVER_URL || 'https://chiasmal-puffingly-etsuko.ngrok-free.dev';
 
 const api = axios.create({
   baseURL: API_BASE_URL,
-  headers: { 'Content-Type': 'application/json' },
+  headers: { 
+    'Content-Type': 'application/json',
+    // 👇 THIS IS THE VIP PASS. It tells Ngrok "I am a developer, let me through".
+    'ngrok-skip-browser-warning': 'true' 
+  },
 });
-
 // Auto-add JWT token
 api.interceptors.request.use((config) => {
   const user = JSON.parse(localStorage.getItem('user') || 'null');
@@ -60,15 +63,27 @@ export const getNearbyRestaurants = async (lat: number, lng: number) => {
   return res.data.filter((r: any) => r.is_open === true);
 };
 // === MENU (GLOBAL) ===
+// apps/web/src/services/api.ts
+
 export const getFoodMenu = async () => {
   try {
     const res = await api.get('/food-items');
+    
+    // --- DEBUG: See what the server actually sent ---
+    console.log("Server Menu Response:", res.data);
+
+    // FIX: Check if it is an array. If not, it's likely an error object.
+    if (!Array.isArray(res.data)) {
+      console.error("API Error: Expected an array but got:", res.data);
+      return [];
+    }
+
     return res.data.map((item: any) => ({
       item_id: item.item_id,
       name: item.name,
-      category: item.category || 'Khác', // ← ĐẢM BẢO CÓ category
+      category: item.category || 'Khác',
       img_url: item.img_url,
-      image: getImageUrl(item.img_url),  // ← ĐÃ CÓ image
+      image: getImageUrl(item.img_url),
       price: Number(item.price) || 0,
       description: item.description,
       is_veg: item.is_veg || false,

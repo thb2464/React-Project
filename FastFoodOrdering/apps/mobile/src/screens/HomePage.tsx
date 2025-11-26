@@ -151,24 +151,28 @@ export default function HomePage() {
 
   return (
     <View style={styles.container}>
+      
       <View style={styles.header}>
-        <View>
+        
+        {/* Cart Button */}
+        <TouchableOpacity style={styles.headerIconBtn} onPress={() => navigation.navigate('Checkout')}>
+            <Ionicons name="cart-outline" size={30} color="#333" />
+            {cartCount > 0 && (
+                <View style={styles.headerBadge}>
+                    <Text style={styles.headerBadgeText}>{cartCount > 99 ? '99+' : cartCount}</Text>
+                </View>
+            )}
+        </TouchableOpacity>
+
+        {/* Welcome text session*/}
+        <View style={{ alignItems: 'center' }}>
           <Text style={styles.greeting}>Chào, {user?.full_name || 'Khách'}</Text>
-          <Text style={styles.subtitle}>Bạn đói chưa?</Text>
+          <Text style={styles.subtitle}>Trời hôm nay đẹp nhỉ?</Text>
         </View>
-        <View style={{flexDirection: 'row', alignItems: 'center'}}>
-            <TouchableOpacity style={styles.headerIconBtn} onPress={() => navigation.navigate('Checkout')}>
-                <Ionicons name="cart-outline" size={30} color="#333" />
-                {cartCount > 0 && (
-                    <View style={styles.headerBadge}>
-                        <Text style={styles.headerBadgeText}>{cartCount > 99 ? '99+' : cartCount}</Text>
-                    </View>
-                )}
-            </TouchableOpacity>
-            <TouchableOpacity style={[styles.headerIconBtn, { marginLeft: 10 }]} onPress={() => navigation.navigate('ProfileTab')}>
-                <Ionicons name="person-circle-outline" size={35} color="#333" />
-            </TouchableOpacity>
-        </View>
+        
+        <TouchableOpacity style={styles.headerIconBtn} onPress={() => navigation.navigate('ProfileTab')}>
+            <Ionicons name="person-circle-outline" size={35} color="#333" />
+        </TouchableOpacity>
       </View>
 
       <View style={styles.searchContainer}>
@@ -212,12 +216,15 @@ export default function HomePage() {
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#fff', paddingTop: 50, paddingHorizontal: 16 },
   center: { flex: 1, justifyContent: 'center', alignItems: 'center' },
+  // Dùng 'space-between' để header tự căn chỉnh
   header: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 },
-  greeting: { fontSize: 20, fontWeight: 'bold' },
-  subtitle: { color: '#666', fontSize: 14 },
+  greeting: { fontSize: 18, fontWeight: 'bold', textAlign: 'center' },
+  subtitle: { color: '#666', fontSize: 14, textAlign: 'center' },
+  
   headerIconBtn: { position: 'relative', padding: 4 },
   headerBadge: { position: 'absolute', top: -2, right: -2, backgroundColor: 'red', borderRadius: 10, minWidth: 20, height: 20, justifyContent: 'center', alignItems: 'center', borderWidth: 2, borderColor: '#fff' },
   headerBadgeText: { color: '#fff', fontSize: 10, fontWeight: 'bold' },
+
   searchContainer: { flexDirection: 'row', backgroundColor: '#f4f4f4', padding: 12, borderRadius: 12, alignItems: 'center', marginBottom: 20 },
   searchInput: { flex: 1, fontSize: 16 },
   categoriesList: { paddingBottom: 20 },
@@ -234,38 +241,33 @@ const styles = StyleSheet.create({
   cardFooter: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
   cardPrice: { fontSize: 16, fontWeight: 'bold' },
   addButton: { backgroundColor: '#000', padding: 6, borderRadius: 20 },
+  
   modalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'flex-end' },
-  modalContent: { 
-    backgroundColor: '#fff', 
-    height: '80%',
-    borderTopLeftRadius: 24, 
-    borderTopRightRadius: 24, 
-    overflow: 'hidden' 
-  },
+  modalContent: { backgroundColor: '#fff', height: '80%', borderTopLeftRadius: 24, borderTopRightRadius: 24, overflow: 'hidden' },
   modalHandle: { width: 40, height: 5, backgroundColor: '#ccc', borderRadius: 3, alignSelf: 'center', marginTop: 10 },
   modalImage: { width: '100%', height: 250, marginTop: 10 },
-  modalBody: { 
-    padding: 24, 
-    flex: 1, 
-  },
+  modalBody: { padding: 24, flex: 1 }, // removed bottom padding
   modalHeaderRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 },
   modalTitle: { fontSize: 24, fontWeight: 'bold', flex: 1 },
   modalPrice: { fontSize: 24, fontWeight: 'bold', color: '#34C759' },
   modalDesc: { fontSize: 16, color: '#666', lineHeight: 24, marginBottom: 24 },
+  
   qtyContainer: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 24 },
   qtyLabel: { fontSize: 18, fontWeight: '600' },
   qtyControls: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#f4f4f4', borderRadius: 30, padding: 4 },
   qtyBtn: { width: 36, height: 36, backgroundColor: '#fff', borderRadius: 18, justifyContent: 'center', alignItems: 'center', elevation: 2 },
   qtyText: { marginHorizontal: 16, fontSize: 18, fontWeight: 'bold' },
+  
   modalAddBtn: { 
     backgroundColor: '#000', 
     padding: 18, 
     borderRadius: 16, 
     alignItems: 'center',
-    marginTop: 'auto',
+    marginTop: 'auto', 
     marginBottom: 40, 
   },
   modalAddBtnText: { color: '#fff', fontSize: 18, fontWeight: 'bold' },
+
   toastContainer: { position: 'absolute', bottom: 30, left: 20, right: 20, alignItems: 'center' },
   toastContent: { flexDirection: 'row', backgroundColor: '#333', padding: 16, borderRadius: 12, alignItems: 'center', shadowColor: "#000", shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.3, shadowRadius: 4, elevation: 6 },
   toastTitle: { color: '#fff', fontWeight: 'bold', fontSize: 16 },

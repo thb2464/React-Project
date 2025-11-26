@@ -1,15 +1,29 @@
 {
   "compilerOptions": {
+    "target": "ESNext",
+    "module": "ESNext",
+    "moduleResolution": "bundler",
+    "useDefineForClassFields": true,
+    "lib": ["DOM", "DOM.Iterable", "ESNext"],
+    "allowJs": false,
+    "skipLibCheck": true,
+    "esModuleInterop": true,
+    "allowSyntheticDefaultImports": true,
+    "strict": true,
+    "forceConsistentCasingInFileNames": true,
+    "noEmit": true,
+    "jsx": "react-jsx",
+    
+    // Path Aliases
     "baseUrl": ".",
     "paths": {
       "@fastfoodordering/store": ["../../packages/store/src/index.ts"],
       "@fastfoodordering/types": ["../../packages/types/src/index.ts"],
       "@fastfoodordering/utils": ["../../packages/utils/src/index.ts"]
     },
-    "jsx": "react-jsx",
-    "skipLibCheck": true,
-    "esModuleInterop": true,
-    "allowSyntheticDefaultImports": true
+    
+    // Allow importing Vite types
+    "types": ["vite/client"]
   },
   "include": ["src"]
 }
